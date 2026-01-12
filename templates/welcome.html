@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome — Resume AI{% endblock %}
+
+{% block content %}
+<div class="container">
+<div class="glass glass-glow hero text-white py-5 px-4">
+    <div class="row align-items-center">
+        <div class="col-md-7">
+            <h1 class="display-5 fw-bold">Welcome to Resume AI</h1>
+            <p class="lead mt-3">Build professional resumes or analyze existing ones with AI-powered insights. Get actionable feedback to land your dream job.</p>
+            <div class="mt-5">
+                <a class="btn btn-light btn-lg me-3" href="/dashboard">Get Started →</a>
+                <a class="btn btn-outline-light btn-lg" href="/login">Sign In</a>
+            </div>
+        </div>
+        <div class="col-md-5 d-none d-md-block text-center">
+            <div class="card-ghost mx-auto" style="max-width:360px">
+                <h4 class="mb-4 text-gradient">Resume Preview</h4>
+                <div class="scene">
+                    <div class="card">
+                        <h1>JOHN DOE</h1>
+                        <h2>Full Stack Developer</h2>
+                        <div class="section">
+                            <strong>Experience</strong>
+                            <p>
+                                • Senior Developer at Tech Corp (2020–2024)<br>
+                                • Led development of 5+ major features<br>
+                                • Improved performance by 40%
+                            </p>
+                        </div>
+                        <div class="section">
+                            <strong>Skills</strong>
+                            <p>React • Node.js • AWS • TypeScript • PostgreSQL</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row g-4 mt-6 align-items-stretch">
+    <div class="col-md-4">
+        <div class="glass p-4 text-white h-100">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">📝</div>
+            <h5 class="fw-bold">Smart Builder</h5>
+            <p class="muted small">Create professional resumes with guided inputs and instant formatting.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass p-4 text-white h-100">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔍</div>
+            <h5 class="fw-bold">AI Analyzer</h5>
+            <p class="muted small">Upload and get instant analysis with keyword matching and ATS optimization.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass p-4 text-white h-100">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">⚡</div>
+            <h5 class="fw-bold">Instant Feedback</h5>
+            <p class="muted small">Get personalized suggestions to improve your resume for each job role.</p>
+        </div>
+    </div>
+</div>
+</div>
+    
+<footer class="py-5 text-center mt-5">
+    <div class="container">
+        <p class="muted small">© 2026 Resume AI. Powered by advanced AI technology.</p>
+        <p class="muted small mt-2">Build better resumes, land better jobs.</p>
+    </div>
+</footer>
+
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Resume AI{% endblock %}
+
+{% block content %}
+
+<div class="container">
+<div id="heroSection" class="glass glass-glow hero text-white mb-5">
+  <div class="row align-items-center">
+    <div class="col-12">
+      <h1 class="display-6 fw-bold mb-3">Welcome Back! 👋</h1>
+      <p class="lead">Choose a tool below to start building or analyzing your resume.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Feature tiles: modern cards for main features -->
+<div class="row g-4 align-items-stretch">
+  <div id="tile-builder" class="col-md-6 d-flex">
+    <div class="glass p-5 text-white flex-fill feature-tile">
+      <div style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
+      <h4 class="fw-bold">Resume Builder</h4>
+      <p class="muted">Create a beautiful, professional resume in minutes with guided inputs and instant download.</p>
+      <div class="mt-auto">
+        <a class="btn btn-light mt-3" href="/builder">Open Builder →</a>
+      </div>
+    </div>
+  </div>
+  <div id="tile-analyzer" class="col-md-6 d-flex">
+    <div class="glass p-5 text-white flex-fill feature-tile">
+      <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+      <h4 class="fw-bold">Resume Analyzer</h4>
+      <p class="muted">Upload your resume and get instant keyword analysis, role-fit scoring, and improvement suggestions.</p>
+      <div class="mt-auto">
+        <a class="btn btn-light mt-3" href="/analyzer">Open Analyzer →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Section -->
+<div class="row g-4 mt-5">
+  <div class="col-md-3 col-6">
+    <div class="glass p-4 text-center text-white">
+      <div style="font-size: 2.5rem; font-weight: 800; color: #667eea;">500+</div>
+      <p class="muted small mt-2">Resumes Created</p>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="glass p-4 text-center text-white">
+      <div style="font-size: 2.5rem; font-weight: 800; color: #10b981;">98%</div>
+      <p class="muted small mt-2">Satisfaction Rate</p>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="glass p-4 text-center text-white">
+      <div style="font-size: 2.5rem; font-weight: 800; color: #f59e0b;">15+</div>
+      <p class="muted small mt-2">Job Roles</p>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="glass p-4 text-center text-white">
+      <div style="font-size: 2.5rem; font-weight: 800; color: #f093fb;">24/7</div>
+      <p class="muted small mt-2">Available</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// GSAP entrance animation for dashboard
+document.addEventListener('DOMContentLoaded', ()=>{
+  if(typeof gsap === 'undefined') return;
+  const tl = gsap.timeline({defaults:{duration:0.8,ease:'power3.out'}});
+  tl.from('#heroSection',{y:30,opacity:0});
+  tl.from('#tile-builder',{y:30,opacity:0},'-=0.4');
+  tl.from('#tile-analyzer',{y:30,opacity:0},'-=0.45');
+});
+</script>
+
+{% endblock %}
