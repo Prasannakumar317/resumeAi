@@ -1,3 +1,5 @@
+Write-Host "Setting environment variables..."
+$env:GOOGLE_API_KEY = "AIzaSyC1ptxK5KNrvChI5yY1Bju2e6dZMuIwXME"
 Write-Host "Installing dependencies..."
 pip install -r requirements.txt
 if ($LASTEXITCODE -ne 0) {

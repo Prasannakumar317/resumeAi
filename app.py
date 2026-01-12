@@ -409,207 +409,52 @@ def chat():
 	if not message:
 		return jsonify({'reply': 'Tell me how I can help: improve bullets, suggest keywords, or rewrite text.'}), 400
 
-	# Optional LLM integration: if client requests `use_llm: true` or environment forces LLM,
-	# and an `OPENAI_API_KEY` is present, forward the message to the provider and return.
-	use_llm = bool(data.get('use_llm')) or os.environ.get('USE_LLM', '').lower() in ('1','true','yes')
-	OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+	GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
-	def call_openai_chat(prompt: str, system: str | None = None, model: str | None = None) -> str | None:
-		"""Call OpenAI-compatible chat completions API (best-effort). Returns assistant text or None."""
+	def call_google_gemini(prompt: str, system: str | None = None) -> str | None:
+		"""Call Google Gemini API (best-effort). Returns assistant text or None."""
 		if requests is None:
 			print('Requests library not available; cannot call external LLM.')
 			return None
-		if not OPENAI_API_KEY:
-			print('OPENAI_API_KEY not set; skipping LLM call')
+		if not GOOGLE_API_KEY:
+			print('GOOGLE_API_KEY not set; skipping LLM call')
 			return None
-		model = model or os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
-		url = os.environ.get('OPENAI_API_URL', 'https://api.openai.com/v1/chat/completions')
-		headers = {
-			'Authorization': f'Bearer {OPENAI_API_KEY}',
-			'Content-Type': 'application/json'
-		}
-		messages = []
-		if system:
-			messages.append({'role': 'system', 'content': system})
-		messages.append({'role': 'user', 'content': prompt})
+		url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
 		payload = {
-			'model': model,
-			'messages': messages,
-			'temperature': float(os.environ.get('OPENAI_TEMPERATURE', 0.2)),
-			'max_tokens': int(os.environ.get('OPENAI_MAX_TOKENS', 512))
+			"contents": [{"parts": [{"text": prompt}]}]
 		}
+		if system:
+			payload["systemInstruction"] = {"parts": [{"text": system}]}
 		try:
-			r = requests.post(url, headers=headers, json=payload, timeout=15)
+			r = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload, timeout=15)
 			if r.status_code != 200:
-				print(f'LLM request failed: {r.status_code} {r.text}')
+				print(f'Gemini request failed: {r.status_code} {r.text}')
 				return None
 			data = r.json()
-			# Best-effort extraction for common OpenAI response shapes
-			choices = data.get('choices') or []
-			if choices:
-				text = choices[0].get('message', {}).get('content') or choices[0].get('text')
-				return text
-			# Fallback
+			candidates = data.get('candidates') or []
+			if candidates:
+				content = candidates[0].get('content', {})
+				parts = content.get('parts', [])
+				if parts:
+					text = parts[0].get('text')
+					return text
 			return None
 		except Exception as e:
-			print(f'Exception calling LLM: {e}')
+			print(f'Exception calling Gemini: {e}')
 			return None
 
-	if use_llm and OPENAI_API_KEY:
-		# Ask the LLM to behave like the resume assistant and include the resume context
-		system_prompt = (
-			"You are a concise, helpful assistant specialized in improving resumes: rewriting bullets, extracting keywords,"
-			" suggesting metrics, and matching resumes to job descriptions. Keep responses actionable and brief."
-		)
-		# include resume_text to give context if present
+	# Always try to use LLM for general-purpose responses
+	if GOOGLE_API_KEY:
+		system_prompt = "You are a helpful assistant."
 		prompt = message
 		if resume_text:
 			prompt = f"Resume Context:\n{resume_text}\n\nUser Request:\n{message}"
-		llm_reply = call_openai_chat(prompt, system=system_prompt)
+		llm_reply = call_google_gemini(prompt, system_prompt)
 		if llm_reply:
 			return jsonify({'reply': llm_reply, 'source': 'llm'})
-		# If LLM failed, fall through to rule-based assistant and include a notice
-		print('LLM call failed or returned no text; using local rule-based assistant')
 
-	msg = message.lower()
-	
-	def smart_rewrite(text):
-		"""Enhance bullets with action verbs, metrics, and stronger phrasing."""
-		lines = [l.strip().lstrip('-*•· ').strip() for l in text.splitlines() if l.strip()]
-		if not lines:
-			return ''
-		
-		# Action verbs grouped by intensity
-		verbs_high = ['Spearheaded','Engineered','Architected','Orchestrated','Transformed']
-		verbs_med = ['Implemented','Optimized','Developed','Designed','Led']
-		verbs_low = ['Improved','Enhanced','Managed','Created','Built']
-		
-		def get_verb(idx):
-			choice = idx % 3
-			if choice == 0: return verbs_high[idx % len(verbs_high)]
-			elif choice == 1: return verbs_med[idx % len(verbs_med)]
-			else: return verbs_low[idx % len(verbs_low)]
-		
-		def add_metrics(bullet):
-			"""If bullet lacks quantifiable metrics, suggest adding them."""
-			has_num = any(c.isdigit() for c in bullet)
-			if not has_num and len(bullet) > 10:
-				return bullet + ' (consider adding: %, #, or $)'
-			return bullet
-		
-		out_lines = []
-		for i, ln in enumerate(lines):
-			if not ln:
-				continue
-			words = ln.split()
-			first_word = words[0].lower() if words else ''
-			
-			# Check if starts with a weak phrase
-			if first_word in ('the','a','an','worked','made','did','helped','was','were','used','got'):
-				verb = get_verb(i)
-				rest = ' '.join(words)
-				if first_word in ('the','a','an'):
-					out = f"{verb} {rest[len(first_word):].lstrip()}"
-				else:
-					out = f"{verb} {' '.join(words[1:])}"
-			else:
-				out = ln[0].upper() + ln[1:] if ln else ''
-			
-			# Add metric suggestion if missing
-			out = add_metrics(out)
-			out_lines.append('• ' + out)
-		
-		return '\n'.join(out_lines)
-	
-	def extract_keywords_from_text(text):
-		"""Extract meaningful keywords from job description or resume."""
-		import re
-		# Look for tech terms, methodologies, frameworks
-		tech_keywords = [
-			'python', 'javascript', 'java', 'react', 'angular', 'vue', 'nodejs', 'django', 'flask',
-			'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'agile', 'scrum',
-			'sql', 'postgresql', 'mysql', 'mongodb', 'redis', 'elasticsearch', 'graphql', 'rest',
-			'machine learning', 'deep learning', 'nlp', 'tensorflow', 'pytorch', 'keras',
-			'ci/cd', 'devops', 'microservices', 'api', 'saas', 'cloud'
-		]
-		text_lower = text.lower()
-		found = [kw for kw in tech_keywords if kw in text_lower]
-		return found[:5] if found else []
-	
-	# IMPROVE / REWRITE
-	if any(k in msg for k in ('improve', 'rewrite', 'enhance', 'make better')):
-		if ':' in message:
-			payload = message.split(':', 1)[1].strip()
-		else:
-			payload = message.replace('improve', '').replace('rewrite', '').replace('enhance', '').replace('make better', '').strip()
-		
-		if payload and len(payload) > 5:
-			rewritten = smart_rewrite(payload)
-			if rewritten:
-				suggestions = "Tips: Use action verbs, include metrics (%, $, #), and quantify impact." if context == 'builder' else "Your improved version is ready to use."
-				reply = f"✓ Improved version:\n{rewritten}\n\n💡 {suggestions}"
-			else:
-				reply = "I can enhance your bullet points with stronger action verbs and clearer impact. Send me 1-3 bullets to improve."
-		else:
-			reply = "Send me a bullet point or achievement and I'll rewrite it to be more impactful with stronger action verbs and metrics."
-	
-	# KEYWORDS / JOB MATCHING
-	elif any(k in msg for k in ('keyword', 'match', 'job', 'missing', 'skills to add')):
-		if ':' in message:
-			job_desc = message.split(':', 1)[1].strip()
-		else:
-			job_desc = resume_text
-		
-		suggested = extract_keywords_from_text(job_desc)
-		resume_kws = extract_keywords_from_text(resume_text)
-		missing = [kw for kw in suggested if kw not in [r.lower() for r in resume_kws]]
-		
-		if suggested:
-			reply_msg = f"📌 Key skills found in job description: {', '.join(suggested[:4])}\n"
-			if missing:
-				reply_msg += f"⚠️ Missing from your resume: {', '.join(missing[:3])}\n"
-				reply_msg += "💡 Try adding these to your skills or experience bullets."
-			else:
-				reply_msg += "✓ Great! You have most of the key skills."
-			reply = reply_msg
-		else:
-			reply = "Paste a job description or tell me what role you're targeting, and I'll suggest key skills to highlight."
-	
-	# HELP / GENERAL
-	elif any(k in msg for k in ('help', 'what can you do', 'capabilities', 'commands')):
-		reply = (
-			"🤖 I can help you:\n\n"
-			"✏️ Improve bullets: 'Improve: <your text>'\n"
-			"🔍 Match job keywords: 'Keywords: <job description>' or 'Match: <role>'\n"
-			"🎯 Enhance summary: 'Rewrite: <your summary>'\n"
-			"📊 Add metrics: 'Add impact to: <text>'\n\n"
-			"Just paste your text after the command and I'll enhance it!"
-		)
-	
-	# FEEDBACK / SCORE
-	elif any(k in msg for k in ('score', 'feedback', 'rate', 'evaluate')):
-		if resume_text and len(resume_text) > 20:
-			has_verbs = any(v in resume_text.lower() for v in ['led', 'managed', 'designed', 'improved'])
-			has_metrics = any(c.isdigit() for c in resume_text)
-			score = 60
-			if has_verbs: score += 15
-			if has_metrics: score += 15
-			feedback = []
-			if not has_verbs: feedback.append('- Use stronger action verbs (Led, Designed, Implemented)')
-			if not has_metrics: feedback.append('- Add quantifiable metrics (%, $, #)')
-			if len(resume_text) < 100: feedback.append('- Add more detail to achievements')
-			reply = f"📈 Resume Strength: {score}%\n\nSuggestions:\n" + '\n'.join(feedback[:3]) if feedback else f"✓ Looking good! Score: {score}%"
-		else:
-			reply = "Send me your resume text or a bullet to evaluate, and I'll give you feedback."
-	
-	# DEFAULT
-	else:
-		reply = (
-			"💬 I can help improve your resume. Try:\n\n"
-			"'Improve: [your text]' → Better phrasing & action verbs\n"
-			"'Keywords: [job description]' → Skills to add\n"
-			"'Help' → See all commands"
-		)
+	# If LLM failed or not available, provide a general fallback
+	reply = "I'm sorry, I'm having trouble responding right now. Please try again later or ask a different question."
 	
 	return jsonify({'reply': reply})
 
