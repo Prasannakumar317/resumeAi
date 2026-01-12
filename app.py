@@ -19,6 +19,10 @@ except ImportError as e:
 import os
 from datetime import datetime
 import re
+try:
+	import requests
+except Exception:
+	requests = None
 
 app = Flask(__name__)
 # Use an environment variable for production secret; fallback for local dev
@@ -404,6 +408,68 @@ def chat():
 	resume_text = (data.get('resume') or '')
 	if not message:
 		return jsonify({'reply': 'Tell me how I can help: improve bullets, suggest keywords, or rewrite text.'}), 400
+
+	# Optional LLM integration: if client requests `use_llm: true` or environment forces LLM,
+	# and an `OPENAI_API_KEY` is present, forward the message to the provider and return.
+	use_llm = bool(data.get('use_llm')) or os.environ.get('USE_LLM', '').lower() in ('1','true','yes')
+	OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+	def call_openai_chat(prompt: str, system: str | None = None, model: str | None = None) -> str | None:
+		"""Call OpenAI-compatible chat completions API (best-effort). Returns assistant text or None."""
+		if requests is None:
+			print('Requests library not available; cannot call external LLM.')
+			return None
+		if not OPENAI_API_KEY:
+			print('OPENAI_API_KEY not set; skipping LLM call')
+			return None
+		model = model or os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
+		url = os.environ.get('OPENAI_API_URL', 'https://api.openai.com/v1/chat/completions')
+		headers = {
+			'Authorization': f'Bearer {OPENAI_API_KEY}',
+			'Content-Type': 'application/json'
+		}
+		messages = []
+		if system:
+			messages.append({'role': 'system', 'content': system})
+		messages.append({'role': 'user', 'content': prompt})
+		payload = {
+			'model': model,
+			'messages': messages,
+			'temperature': float(os.environ.get('OPENAI_TEMPERATURE', 0.2)),
+			'max_tokens': int(os.environ.get('OPENAI_MAX_TOKENS', 512))
+		}
+		try:
+			r = requests.post(url, headers=headers, json=payload, timeout=15)
+			if r.status_code != 200:
+				print(f'LLM request failed: {r.status_code} {r.text}')
+				return None
+			data = r.json()
+			# Best-effort extraction for common OpenAI response shapes
+			choices = data.get('choices') or []
+			if choices:
+				text = choices[0].get('message', {}).get('content') or choices[0].get('text')
+				return text
+			# Fallback
+			return None
+		except Exception as e:
+			print(f'Exception calling LLM: {e}')
+			return None
+
+	if use_llm and OPENAI_API_KEY:
+		# Ask the LLM to behave like the resume assistant and include the resume context
+		system_prompt = (
+			"You are a concise, helpful assistant specialized in improving resumes: rewriting bullets, extracting keywords,"
+			" suggesting metrics, and matching resumes to job descriptions. Keep responses actionable and brief."
+		)
+		# include resume_text to give context if present
+		prompt = message
+		if resume_text:
+			prompt = f"Resume Context:\n{resume_text}\n\nUser Request:\n{message}"
+		llm_reply = call_openai_chat(prompt, system=system_prompt)
+		if llm_reply:
+			return jsonify({'reply': llm_reply, 'source': 'llm'})
+		# If LLM failed, fall through to rule-based assistant and include a notice
+		print('LLM call failed or returned no text; using local rule-based assistant')
 
 	msg = message.lower()
 	
