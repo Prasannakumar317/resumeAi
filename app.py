@@ -36,10 +36,16 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev_change_me_to_secure_random')
 
 # Session configuration for security
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+# Auto-detect production environment
+is_production = os.environ.get('ENVIRONMENT', '').lower() == 'production' or 'vercel' in os.environ
+app.config['SESSION_COOKIE_SECURE'] = is_production  # True in production with HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
+# Debug mode - OFF in production
+app.debug = not is_production
+print(f"[CONFIG] Production mode: {is_production}, Debug: {app.debug}")
 
 # Enable CSRF protection
 csrf = CSRFProtect(app)
@@ -75,14 +81,26 @@ def init_genai():
 			print(f"[INIT WARNING] Failed to initialize Gemini API: {e}")
 			genai = False  # Mark as failed so we don't retry
 
-# Database (SQLite for local/dev). For production, replace with PostgreSQL or other DB.
+# Database (SQLite for local/dev). For production on Vercel, use PostgreSQL from DATABASE_URL
 basedir = os.path.abspath(os.path.dirname(__file__))
-db_path = os.environ.get('DATABASE_PATH', os.path.join(basedir, 'site.db'))
-db_path_uri = 'sqlite:///' + db_path if not db_path.startswith('sqlite://') else db_path
-app.config['SQLALCHEMY_DATABASE_URI'] = db_path_uri
+
+# Check for Vercel production database first (PostgreSQL)
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+	# Vercel provides PostgreSQL URL - use it
+	if database_url.startswith('postgres://'):
+		database_url = database_url.replace('postgres://', 'postgresql://', 1)
+	app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+	print(f"[DB] Using production database from DATABASE_URL")
+else:
+	# Local development - use SQLite
+	db_path = os.environ.get('DATABASE_PATH', os.path.join(basedir, 'site.db'))
+	db_path_uri = 'sqlite:///' + db_path if not db_path.startswith('sqlite://') else db_path
+	app.config['SQLALCHEMY_DATABASE_URI'] = db_path_uri
+	print(f"[DB] Using local database: {db_path}")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-print(f"[DB] Using database: {db_path}")
 
 # Uploads folder (used by analyzer)
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'uploads')
@@ -403,6 +421,7 @@ def status():
 			'status': 'healthy',
 			'database': db_status,
 			'version': '1.0',
+			'environment': 'production' if is_production else 'development',
 			'features': ['authentication', 'resume_builder', 'analyzer', 'chat']
 		}), 200
 	except Exception as e:
@@ -410,6 +429,28 @@ def status():
 			'status': 'error',
 			'error': str(e)
 		}), 500
+
+
+@app.route('/debug')
+def debug():
+	"""Debug endpoint for Vercel deployment issues"""
+	debug_info = {
+		'environment': 'production' if is_production else 'development',
+		'has_secret_key': bool(os.environ.get('SECRET_KEY')),
+		'has_database_url': bool(os.environ.get('DATABASE_URL')),
+		'database_type': 'PostgreSQL' if os.environ.get('DATABASE_URL') else 'SQLite',
+		'csrf_enabled': True,
+		'session_secure': app.config.get('SESSION_COOKIE_SECURE'),
+		'session_samesite': app.config.get('SESSION_COOKIE_SAMESITE'),
+	}
+	
+	try:
+		debug_info['database_connection'] = 'OK'
+		User.query.count()
+	except Exception as e:
+		debug_info['database_connection'] = f'FAILED: {str(e)[:100]}'
+	
+	return jsonify(debug_info)
 
 
 @app.route('/')
