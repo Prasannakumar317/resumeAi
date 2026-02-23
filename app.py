@@ -7,7 +7,9 @@ from werkzeug.utils import secure_filename
 from functools import wraps
 from datetime import datetime, timedelta
 import logging
-import google.generativeai as genai
+
+# Lazy load genai to avoid slow imports blocking startup
+genai = None
 
 try:
 	import PyPDF2
@@ -42,13 +44,36 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 # Enable CSRF protection
 csrf = CSRFProtect(app)
 
+# Add CSRF token to all templates
+@app.context_processor
+def inject_csrf_token():
+	"""Make csrf_token() available in all templates"""
+	try:
+		from flask_wtf.csrf import generate_csrf
+		return {'csrf_token': generate_csrf}
+	except Exception as e:
+		print(f"[CSRF ERROR] Failed to inject CSRF token: {e}")
+		return {'csrf_token': lambda: ''}
+
 # Setup logging for authentication
 logging.basicConfig(level=logging.INFO)
 auth_logger = logging.getLogger('auth')
 
-# Configure Gemini API
+# Lazy configure Gemini API (only when needed for chat)
 GEMINI_API_KEY = 'AIzaSyA2kTypsJMx4o1quNX2aQxWex4WnGs1mZk'
-genai.configure(api_key=GEMINI_API_KEY)
+
+def init_genai():
+	"""Initialize Gemini API - called lazily to avoid slow startup"""
+	global genai
+	if genai is None:
+		try:
+			import google.generativeai as genai_temp
+			genai_temp.configure(api_key=GEMINI_API_KEY)
+			genai = genai_temp
+			print("[INIT] Gemini API initialized successfully")
+		except Exception as e:
+			print(f"[INIT WARNING] Failed to initialize Gemini API: {e}")
+			genai = False  # Mark as failed so we don't retry
 
 # Database (SQLite for local/dev). For production, replace with PostgreSQL or other DB.
 basedir = os.path.abspath(os.path.dirname(__file__))

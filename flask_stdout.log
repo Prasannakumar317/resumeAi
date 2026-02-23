@@ -1,0 +1,8 @@
+[FPDF] FPDF library loaded successfully
+[DB] Using database: C:\cmrhackthon\site.db
+[INIT] Initializing database...
+[INIT] Database file found: C:\cmrhackthon\site.db
+[INIT] Database initialized successfully.
+[INIT] Starting Flask app on http://127.0.0.1:5000
+ * Serving Flask app 'app'
+ * Debug mode: on

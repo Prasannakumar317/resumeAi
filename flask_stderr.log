@@ -1,0 +1,29 @@
+C:\cmrhackthon\app.py:10: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.0.104:5000
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug:127.0.0.1 - - [23/Feb/2026 16:38:51] "GET /status HTTP/1.1" 200 -
+INFO:flask_wtf.csrf:The CSRF token is missing.
+INFO:werkzeug:127.0.0.1 - - [23/Feb/2026 18:42:33] "[31m[1mPOST /signup HTTP/1.1[0m" 400 -
+INFO:werkzeug:127.0.0.1 - - [23/Feb/2026 19:01:20] "GET /signup HTTP/1.1" 200 -
+INFO:auth:New account created: testuser@example.com
+INFO:werkzeug:127.0.0.1 - - [23/Feb/2026 19:01:20] "[32mPOST /signup HTTP/1.1[0m" 302 -
+INFO:werkzeug:127.0.0.1 - - [23/Feb/2026 19:01:35] "GET /login HTTP/1.1" 200 -
+C:\cmrhackthon\app.py:125: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  self.last_login = datetime.utcnow()
+INFO:auth:Successful login: testuser@example.com
+INFO:werkzeug:127.0.0.1 - - [23/Feb/2026 19:01:35] "[32mPOST /login HTTP/1.1[0m" 302 -
+INFO:werkzeug:127.0.0.1 - - [23/Feb/2026 19:12:16] "GET /status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [23/Feb/2026 19:12:16] "GET /login HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [23/Feb/2026 19:12:16] "GET /signup HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [23/Feb/2026 19:12:16] "GET /builder HTTP/1.1" 200 -
