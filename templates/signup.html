@@ -25,18 +25,32 @@
         {% endwith %}
 
         <form method="post" action="/signup">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <div class="mb-3">
             <label for="name" class="form-label">Full Name</label>
-            <input id="name" name="name" type="text" required class="form-control">
+            <input id="name" name="name" type="text" required class="form-control" maxlength="150">
           </div>
           <div class="mb-3">
             <label for="email" class="form-label">Email Address</label>
-            <input id="email" name="email" type="email" required class="form-control">
+            <input id="email" name="email" type="email" required class="form-control" maxlength="150">
           </div>
-          <div class="mb-4">
+          <div class="mb-3">
             <label for="password" class="form-label">Password</label>
             <input id="password" name="password" type="password" required class="form-control">
-            <small class="muted">At least 8 characters</small>
+            <small class="muted d-block mt-2">
+              Password must contain:
+              <ul class="mb-0 ps-3">
+                <li>At least 8 characters</li>
+                <li>Uppercase letters (A-Z)</li>
+                <li>Lowercase letters (a-z)</li>
+                <li>Numbers (0-9)</li>
+                <li>Special characters (!@#$%^&*)</li>
+              </ul>
+            </small>
+          </div>
+          <div class="mb-4">
+            <label for="confirm_password" class="form-label">Confirm Password</label>
+            <input id="confirm_password" name="confirm_password" type="password" required class="form-control">
           </div>
 
           <button type="submit" class="btn btn-light w-100 fw-bold">Create Account</button>

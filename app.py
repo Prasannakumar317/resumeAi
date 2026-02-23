@@ -1,8 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask import send_from_directory
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from functools import wraps
+from datetime import datetime, timedelta
+import logging
+import google.generativeai as genai
 
 try:
 	import PyPDF2
@@ -28,6 +33,23 @@ app = Flask(__name__)
 # Use an environment variable for production secret; fallback for local dev
 app.secret_key = os.environ.get('SECRET_KEY', 'dev_change_me_to_secure_random')
 
+# Session configuration for security
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
+# Enable CSRF protection
+csrf = CSRFProtect(app)
+
+# Setup logging for authentication
+logging.basicConfig(level=logging.INFO)
+auth_logger = logging.getLogger('auth')
+
+# Configure Gemini API
+GEMINI_API_KEY = 'AIzaSyA2kTypsJMx4o1quNX2aQxWex4WnGs1mZk'
+genai.configure(api_key=GEMINI_API_KEY)
+
 # Database (SQLite for local/dev). For production, replace with PostgreSQL or other DB.
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'site.db')
@@ -51,20 +73,99 @@ def allowed_file(filename: str) -> bool:
 
 class User(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
-	name = db.Column(db.String(150))
-	email = db.Column(db.String(150), unique=True, nullable=False)
+	name = db.Column(db.String(150), nullable=False)
+	email = db.Column(db.String(150), unique=True, nullable=False, index=True)
 	password_hash = db.Column(db.String(255), nullable=False)
 	created_at = db.Column(db.DateTime, default=datetime.utcnow)
+	last_login = db.Column(db.DateTime)
+	is_active = db.Column(db.Boolean, default=True)
+	failed_attempts = db.Column(db.Integer, default=0)
+	locked_until = db.Column(db.DateTime)
 
 	def set_password(self, password: str):
-		self.password_hash = generate_password_hash(password)
+		"""Hash and store the password"""
+		self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
 	def check_password(self, password: str) -> bool:
+		"""Verify the provided password against the hash"""
 		return check_password_hash(self.password_hash, password)
+	
+	def is_locked(self) -> bool:
+		"""Check if account is locked due to failed login attempts"""
+		if self.locked_until and self.locked_until > datetime.utcnow():
+			return True
+		return False
+	
+	def record_failed_login(self):
+		"""Record a failed login attempt and lock account if needed"""
+		self.failed_attempts += 1
+		if self.failed_attempts >= 5:
+			self.locked_until = datetime.utcnow() + timedelta(minutes=15)
+		db.session.commit()
+	
+	def reset_failed_attempts(self):
+		"""Reset failed attempts on successful login"""
+		self.failed_attempts = 0
+		self.locked_until = None
+		self.last_login = datetime.utcnow()
+		db.session.commit()
+
+
+class LoginHistory(db.Model):
+	"""Track user login history for security"""
+	id = db.Column(db.Integer, primary_key=True)
+	user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+	login_time = db.Column(db.DateTime, default=datetime.utcnow)
+	ip_address = db.Column(db.String(45))
+	user_agent = db.Column(db.String(255))
+	success = db.Column(db.Boolean, default=True)
+	
+	user = db.relationship('User', backref='login_history')
 
 
 def is_valid_email(email: str) -> bool:
 	return re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email) is not None
+
+
+def is_strong_password(password: str) -> tuple[bool, str]:
+	"""Validate password strength"""
+	if len(password) < 8:
+		return False, "Password must be at least 8 characters long"
+	if not re.search(r'[a-z]', password):
+		return False, "Password must contain lowercase letters"
+	if not re.search(r'[A-Z]', password):
+		return False, "Password must contain uppercase letters"
+	if not re.search(r'[0-9]', password):
+		return False, "Password must contain numbers"
+	if not re.search(r'[!@#$%^&*()_+\-=\[\]{};:\'",.<>?]', password):
+		return False, "Password must contain special characters (!@#$%^&* etc)"
+	return True, "Password is strong"
+
+
+def get_client_ip():
+	"""Get client IP address from request"""
+	if request.headers.getlist("X-Forwarded-For"):
+		return request.headers.getlist("X-Forwarded-For")[0]
+	return request.remote_addr
+
+
+def login_required(f):
+	"""Decorator to protect routes that require login"""
+	@wraps(f)
+	def decorated_function(*args, **kwargs):
+		if 'user_id' not in session:
+			flash('Please log in to access this page', 'error')
+			return redirect(url_for('login'))
+		
+		# Check if user still exists and is active
+		user = User.query.get(session['user_id'])
+		if not user or not user.is_active:
+			session.clear()
+			flash('Your account is no longer available', 'error')
+			return redirect(url_for('login'))
+		
+		return f(*args, **kwargs)
+	return decorated_function
 
 
 def generate_resume_pdf(name: str, email: str, phone: str, summary: str, education: str, experience: str, achievements: str, skills: str, declaration: str) -> bytes:
@@ -252,10 +353,9 @@ def index():
 
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
-	user = None
-	if session.get('user_id'):
-		user = User.query.get(session['user_id'])
+	user = User.query.get(session['user_id'])
 	return render_template('index.html', user=user)
 
 
@@ -265,8 +365,10 @@ def signup():
 		name = request.form.get('name', '').strip()
 		email = request.form.get('email', '').strip().lower()
 		password = request.form.get('password', '')
+		confirm_password = request.form.get('confirm_password', '')
 
-		if not name or not email or not password:
+		# Validation
+		if not name or not email or not password or not confirm_password:
 			flash('Please fill all required fields', 'error')
 			return redirect(url_for('signup'))
 
@@ -274,8 +376,13 @@ def signup():
 			flash('Invalid email address', 'error')
 			return redirect(url_for('signup'))
 
-		if len(password) < 8:
-			flash('Use at least 8 characters for the password', 'error')
+		if password != confirm_password:
+			flash('Passwords do not match', 'error')
+			return redirect(url_for('signup'))
+
+		is_strong, msg = is_strong_password(password)
+		if not is_strong:
+			flash(msg, 'error')
 			return redirect(url_for('signup'))
 
 		existing = User.query.filter_by(email=email).first()
@@ -283,18 +390,20 @@ def signup():
 			flash('Email already registered. Please log in.', 'error')
 			return redirect(url_for('login'))
 
-		user = User(name=name, email=email)
+		# Create new user
+		user = User(name=name, email=email, is_active=True)
 		user.set_password(password)
 		try:
 			db.session.add(user)
 			db.session.commit()
-		except Exception:
+			auth_logger.info(f"New account created: {email}")
+			flash('Account created successfully. Please log in.', 'success')
+			return redirect(url_for('login'))
+		except Exception as e:
 			db.session.rollback()
+			auth_logger.error(f"Signup error for {email}: {str(e)}")
 			flash('An error occurred creating your account', 'error')
 			return redirect(url_for('signup'))
-
-		flash('Account created. Please log in.', 'success')
-		return redirect(url_for('login'))
 
 	return render_template('signup.html')
 
@@ -305,14 +414,66 @@ def login():
 		email = request.form.get('email', '').strip().lower()
 		password = request.form.get('password', '')
 
-		user = User.query.filter_by(email=email).first()
-		if not user or not user.check_password(password):
-			flash('Invalid credentials', 'error')
+		if not email or not password:
+			flash('Please provide both email and password', 'error')
 			return redirect(url_for('login'))
 
+		user = User.query.filter_by(email=email).first()
+		
+		# Check if account is locked
+		if user and user.is_locked():
+			flash('Account locked due to too many failed attempts. Try again in 15 minutes.', 'error')
+			auth_logger.warning(f"Login attempt on locked account: {email}")
+			return redirect(url_for('login'))
+
+		# Check credentials
+		if not user or not user.check_password(password):
+			if user:
+				user.record_failed_login()
+				auth_logger.warning(f"Failed login attempt: {email} (Attempt {user.failed_attempts})")
+			else:
+				auth_logger.warning(f"Login attempt with non-existent email: {email}")
+			
+			# Log the failed attempt
+			if user:
+				login_history = LoginHistory(
+					user_id=user.id,
+					ip_address=get_client_ip(),
+					user_agent=request.headers.get('User-Agent', '')[:255],
+					success=False
+				)
+				db.session.add(login_history)
+				db.session.commit()
+			
+			flash('Invalid email or password', 'error')
+			return redirect(url_for('login'))
+
+		# Successful login
+		if not user.is_active:
+			flash('Your account has been deactivated', 'error')
+			auth_logger.warning(f"Login attempt on inactive account: {email}")
+			return redirect(url_for('login'))
+
+		user.reset_failed_attempts()
+		
+		# Log successful login
+		login_history = LoginHistory(
+			user_id=user.id,
+			ip_address=get_client_ip(),
+			user_agent=request.headers.get('User-Agent', '')[:255],
+			success=True
+		)
+		db.session.add(login_history)
+		db.session.commit()
+
+		# Set session
+		session.permanent = True
 		session['user_id'] = user.id
 		session['user_name'] = user.name
-		flash('Logged in successfully', 'success')
+		session['user_email'] = user.email
+		
+		auth_logger.info(f"Successful login: {email} from {get_client_ip()}")
+		flash(f'Welcome back, {user.name}!', 'success')
 		return redirect(url_for('dashboard'))
 
 	return render_template('login.html')
@@ -320,8 +481,10 @@ def login():
 
 @app.route('/logout')
 def logout():
+	user_email = session.get('user_email', 'unknown')
 	session.clear()
-	flash('Logged out', 'info')
+	auth_logger.info(f"User logged out: {user_email}")
+	flash('Logged out successfully', 'info')
 	return redirect(url_for('index'))
 
 
@@ -399,64 +562,72 @@ def builder():
 	return render_template('builder.html', message=message, download=download)
 
 
-@app.route('/chat', methods=['POST'])
+@app.route('/chat', methods=['POST', 'GET', 'OPTIONS'])
+@csrf.exempt  # Exempt chat from CSRF since it's called from JavaScript
 def chat():
-	"""Improved resume chatbot with intelligent rewriting, keyword matching, and context-aware responses."""
-	data = request.get_json(silent=True) or {}
-	message = (data.get('message') or '').strip()
-	context = (data.get('context') or '').strip().lower()
-	resume_text = (data.get('resume') or '')
-	if not message:
-		return jsonify({'reply': 'Tell me how I can help: improve bullets, suggest keywords, or rewrite text.'}), 400
-
-	GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
-
-	def call_google_gemini(prompt: str, system: str | None = None) -> str | None:
-		"""Call Google Gemini API (best-effort). Returns assistant text or None."""
-		if requests is None:
-			print('Requests library not available; cannot call external LLM.')
-			return None
-		if not GOOGLE_API_KEY:
-			print('GOOGLE_API_KEY not set; skipping LLM call')
-			return None
-		url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
-		payload = {
-			"contents": [{"parts": [{"text": prompt}]}]
-		}
-		if system:
-			payload["systemInstruction"] = {"parts": [{"text": system}]}
-		try:
-			r = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload, timeout=15)
-			if r.status_code != 200:
-				print(f'Gemini request failed: {r.status_code} {r.text}')
-				return None
-			data = r.json()
-			candidates = data.get('candidates') or []
-			if candidates:
-				content = candidates[0].get('content', {})
-				parts = content.get('parts', [])
-				if parts:
-					text = parts[0].get('text')
-					return text
-			return None
-		except Exception as e:
-			print(f'Exception calling Gemini: {e}')
-			return None
-
-	# Always try to use LLM for general-purpose responses
-	if GOOGLE_API_KEY:
-		system_prompt = "You are a helpful assistant."
-		prompt = message
-		if resume_text:
-			prompt = f"Resume Context:\n{resume_text}\n\nUser Request:\n{message}"
-		llm_reply = call_google_gemini(prompt, system_prompt)
-		if llm_reply:
-			return jsonify({'reply': llm_reply, 'source': 'llm'})
-
-	# If LLM failed or not available, provide a general fallback
-	reply = "I'm sorry, I'm having trouble responding right now. Please try again later or ask a different question."
+	"""Real-time resume assistant with intelligent local responses"""
+	# Handle CORS preflight
+	if request.method == 'OPTIONS':
+		response = jsonify({'status': 'ok'})
+		response.headers.add('Access-Control-Allow-Origin', '*')
+		response.headers.add('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+		response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+		return response, 200
 	
-	return jsonify({'reply': reply})
+	if request.method == 'GET':
+		return jsonify({'status': 'ok', 'message': 'Chat endpoint is working'}), 200
+	
+	try:
+		print(f"\n[CHAT] Request received")
+		
+		data = request.get_json(silent=True) or {}
+		message = (data.get('message') or '').strip()
+		
+		if not message:
+			return jsonify({'reply': 'How can I help? Ask anything about your resume!'}), 200
+		
+		msg_lower = message.lower()
+		print(f"[CHAT] Message: '{message}'")
+		
+		# Local response system - No API timeouts
+		if any(word in msg_lower for word in ['improve', 'better', 'enhance', 'bullet']):
+			reply = "Use action verbs (Led, Developed, Increased), add numbers/metrics, show impact, and be specific. Example: 'Led redesign of website, improving load speed by 40%' vs 'Worked on website'."
+		
+		elif any(word in msg_lower for word in ['keyword', 'ats', 'optimize']):
+			reply = "Match job description keywords, use clear section headings (Experience, Skills, Education), keep plain text (no graphics), match job titles, create a dedicated skills list."
+		
+		elif any(word in msg_lower for word in ['summary', 'profile', 'objective', 'intro']):
+			reply = "Write: 'Results-driven [Role] with [X years] in [Industry]. Proven expertise in [Skills]. Skilled in [Technical]. Seeking [Position].' Make it specific to your target role."
+		
+		elif any(word in msg_lower for word in ['skill', 'add', 'competency']):
+			reply = "List: Technical skills (languages, tools), Soft skills (Leadership, Communication), Industry expertise, Management/Project skills. Prioritize skills from the job you're applying for."
+		
+		elif any(word in msg_lower for word in ['metric', 'number', 'impact', 'result', 'achieve']):
+			reply = "Add metrics: Revenue ($2M), Performance (35% improvement), Time (2-month reduction), Scale (team of 12), Quality (99.9% uptime), Growth (150% increase)."
+		
+		elif any(word in msg_lower for word in ['format', 'structure', 'layout']):
+			reply = "Best format: Name + contact info at top, 2-3 line summary, experience (recent first), skills section, education. 1-2 pages, clear headings, bullets, standard fonts, save as PDF."
+		
+		elif any(word in msg_lower for word in ['experience', 'job', 'work', 'position']):
+			reply = "Format: [Action Verb] [Task] [Result]. Example: 'Led team of 8 to deliver CRM 2 weeks early, saving $500K.' Use 4-6 bullets per job with metrics."
+		
+		elif any(word in msg_lower for word in ['education', 'degree', 'certification', 'course']):
+			reply = "Include: Degree, University, Date, Relevant coursework, Honors (GPA > 3.5), Certifications. Format: Bachelor Science Computer Science | MIT | May 2020."
+		
+		elif any(word in msg_lower for word in ['project', 'portfolio', 'github']):
+			reply = "List: Project name, Tech stack, Brief 1-2 line description, Impact/users. Example: Task App (React, Node, MongoDB) - Real-time collaboration tool, 500+ users."
+		
+		else:
+			reply = "Resume Coach here! Ask me about: bullets, keywords/ATS, summary, skills, metrics, format, experience, education, or projects. What would you like help with?"
+		
+		print(f"[CHAT] Response generated: {len(reply)} chars")
+		return jsonify({'reply': reply}), 200
+	
+	except Exception as e:
+		print(f"[CHAT ERROR] {type(e).__name__}: {str(e)}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'reply': 'Error processing request. Please try again.'}), 500
 
 
 @app.route('/download/<path:filename>')
