@@ -16,10 +16,10 @@ except Exception:
 
 try:
 	from fpdf import FPDF
-	print("✓ FPDF library loaded successfully")
+	print("[FPDF] FPDF library loaded successfully")
 except ImportError as e:
 	FPDF = None
-	print(f"✗ FPDF import failed: {e}")
+	print(f"[FPDF] FPDF import failed: {e}")
 
 import os
 from datetime import datetime
@@ -52,9 +52,12 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # Database (SQLite for local/dev). For production, replace with PostgreSQL or other DB.
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'site.db')
+db_path = os.environ.get('DATABASE_PATH', os.path.join(basedir, 'site.db'))
+db_path_uri = 'sqlite:///' + db_path if not db_path.startswith('sqlite://') else db_path
+app.config['SQLALCHEMY_DATABASE_URI'] = db_path_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+print(f"[DB] Using database: {db_path}")
 
 # Uploads folder (used by analyzer)
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'uploads')
@@ -84,11 +87,23 @@ class User(db.Model):
 
 	def set_password(self, password: str):
 		"""Hash and store the password"""
-		self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+		try:
+			self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+			print(f"[AUTH] Password hash generated successfully")
+		except Exception as e:
+			print(f"[AUTH ERROR] Failed to hash password: {e}")
+			raise
 
 	def check_password(self, password: str) -> bool:
 		"""Verify the provided password against the hash"""
-		return check_password_hash(self.password_hash, password)
+		try:
+			if not self.password_hash:
+				print(f"[AUTH] No password hash stored for user")
+				return False
+			return check_password_hash(self.password_hash, password)
+		except Exception as e:
+			print(f"[AUTH ERROR] Failed to verify password: {e}")
+			return False
 	
 	def is_locked(self) -> bool:
 		"""Check if account is locked due to failed login attempts"""
@@ -347,6 +362,31 @@ def generate_resume_pdf(name: str, email: str, phone: str, summary: str, educati
 # creating tables at import-time in case of test/import scenarios.
 
 
+@app.route('/status')
+def status():
+	"""Health check and diagnostics endpoint"""
+	try:
+		db_status = "OK"
+		try:
+			# Try to query the database
+			user_count = User.query.count()
+			db_status = f"OK (Users: {user_count})"
+		except Exception as de:
+			db_status = f"ERROR: {str(de)[:100]}"
+		
+		return jsonify({
+			'status': 'healthy',
+			'database': db_status,
+			'version': '1.0',
+			'features': ['authentication', 'resume_builder', 'analyzer', 'chat']
+		}), 200
+	except Exception as e:
+		return jsonify({
+			'status': 'error',
+			'error': str(e)
+		}), 500
+
+
 @app.route('/')
 def index():
 	return render_template('welcome.html')
@@ -361,122 +401,165 @@ def dashboard():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-	if request.method == 'POST':
-		name = request.form.get('name', '').strip()
-		email = request.form.get('email', '').strip().lower()
-		password = request.form.get('password', '')
-		confirm_password = request.form.get('confirm_password', '')
+	try:
+		if request.method == 'POST':
+			name = request.form.get('name', '').strip()
+			email = request.form.get('email', '').strip().lower()
+			password = request.form.get('password', '')
+			confirm_password = request.form.get('confirm_password', '')
+			
+			print(f"[SIGNUP] Attempt for email: {email}")
 
-		# Validation
-		if not name or not email or not password or not confirm_password:
-			flash('Please fill all required fields', 'error')
-			return redirect(url_for('signup'))
+			# Validation
+			if not name or not email or not password or not confirm_password:
+				flash('Please fill all required fields', 'error')
+				return redirect(url_for('signup'))
 
-		if not is_valid_email(email):
-			flash('Invalid email address', 'error')
-			return redirect(url_for('signup'))
+			if not is_valid_email(email):
+				flash('Invalid email address', 'error')
+				return redirect(url_for('signup'))
 
-		if password != confirm_password:
-			flash('Passwords do not match', 'error')
-			return redirect(url_for('signup'))
+			if password != confirm_password:
+				flash('Passwords do not match', 'error')
+				return redirect(url_for('signup'))
 
-		is_strong, msg = is_strong_password(password)
-		if not is_strong:
-			flash(msg, 'error')
-			return redirect(url_for('signup'))
+			is_strong, msg = is_strong_password(password)
+			if not is_strong:
+				flash(msg, 'error')
+				return redirect(url_for('signup'))
 
-		existing = User.query.filter_by(email=email).first()
-		if existing:
-			flash('Email already registered. Please log in.', 'error')
-			return redirect(url_for('login'))
+			try:
+				existing = User.query.filter_by(email=email).first()
+				if existing:
+					flash('Email already registered. Please log in.', 'error')
+					return redirect(url_for('login'))
+			except Exception as e:
+				print(f"[SIGNUP ERROR] Database query failed: {e}")
+				flash('Database error. Please try again.', 'error')
+				return redirect(url_for('signup'))
 
-		# Create new user
-		user = User(name=name, email=email, is_active=True)
-		user.set_password(password)
-		try:
-			db.session.add(user)
-			db.session.commit()
-			auth_logger.info(f"New account created: {email}")
-			flash('Account created successfully. Please log in.', 'success')
-			return redirect(url_for('login'))
-		except Exception as e:
-			db.session.rollback()
-			auth_logger.error(f"Signup error for {email}: {str(e)}")
-			flash('An error occurred creating your account', 'error')
-			return redirect(url_for('signup'))
+			# Create new user
+			try:
+				user = User(name=name, email=email, is_active=True)
+				user.set_password(password)
+				print(f"[SIGNUP] Creating user: {email}")
+				
+				db.session.add(user)
+				db.session.commit()
+				print(f"[SIGNUP] User created successfully: {email}")
+				auth_logger.info(f"New account created: {email}")
+				flash('Account created successfully. Please log in.', 'success')
+				return redirect(url_for('login'))
+			except Exception as e:
+				db.session.rollback()
+				print(f"[SIGNUP ERROR] Failed to create user {email}: {e}")
+				import traceback
+				traceback.print_exc()
+				auth_logger.error(f"Signup error for {email}: {str(e)}")
+				flash('An error occurred creating your account', 'error')
+				return redirect(url_for('signup'))
 
-	return render_template('signup.html')
+		return render_template('signup.html')
+	except Exception as e:
+		print(f"[SIGNUP CRITICAL ERROR] {type(e).__name__}: {e}")
+		import traceback
+		traceback.print_exc()
+		flash('An error occurred. Please try again.', 'error')
+		return redirect(url_for('signup'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-	if request.method == 'POST':
-		email = request.form.get('email', '').strip().lower()
-		password = request.form.get('password', '')
+	try:
+		if request.method == 'POST':
+			email = request.form.get('email', '').strip().lower()
+			password = request.form.get('password', '')
+			print(f"[LOGIN] Attempt for email: {email}")
 
-		if not email or not password:
-			flash('Please provide both email and password', 'error')
-			return redirect(url_for('login'))
+			if not email or not password:
+				flash('Please provide both email and password', 'error')
+				return redirect(url_for('login'))
 
-		user = User.query.filter_by(email=email).first()
-		
-		# Check if account is locked
-		if user and user.is_locked():
-			flash('Account locked due to too many failed attempts. Try again in 15 minutes.', 'error')
-			auth_logger.warning(f"Login attempt on locked account: {email}")
-			return redirect(url_for('login'))
+			try:
+				user = User.query.filter_by(email=email).first()
+				print(f"[LOGIN] User found: {user is not None}")
+			except Exception as e:
+				print(f"[LOGIN ERROR] Database query failed: {e}")
+				flash('Database error. Please try again.', 'error')
+				return redirect(url_for('login'))
+				
+				# Check if account is locked
+			if user and user.is_locked():
+				flash('Account locked. Try again in 15 minutes.', 'error')
+				auth_logger.warning(f"Login on locked account: {email}")
+				return redirect(url_for('login'))
 
-		# Check credentials
-		if not user or not user.check_password(password):
-			if user:
-				user.record_failed_login()
-				auth_logger.warning(f"Failed login attempt: {email} (Attempt {user.failed_attempts})")
-			else:
-				auth_logger.warning(f"Login attempt with non-existent email: {email}")
+			# Check credentials
+			if not user or not user.check_password(password):
+				print(f"[LOGIN] Invalid credentials for {email}")
+				if user:
+					user.record_failed_login()
+					db.session.commit()
+					
+					try:
+						login_history = LoginHistory(
+							user_id=user.id,
+							ip_address=get_client_ip(),
+							user_agent=request.headers.get('User-Agent', '')[:255],
+							success=False
+						)
+						db.session.add(login_history)
+						db.session.commit()
+					except Exception as he:
+						print(f"[LOGIN] History log error: {he}")
+					
+				flash('Invalid email or password', 'error')
+				return redirect(url_for('login'))
+
+			# Successful login
+			if not user.is_active:
+				flash('Account inactive', 'error')
+				return redirect(url_for('login'))
+
+			print(f"[LOGIN] Password verified for {email}")
+			user.reset_failed_attempts()
+			db.session.commit()
 			
-			# Log the failed attempt
-			if user:
+			try:
 				login_history = LoginHistory(
 					user_id=user.id,
 					ip_address=get_client_ip(),
 					user_agent=request.headers.get('User-Agent', '')[:255],
-					success=False
+					success=True
 				)
 				db.session.add(login_history)
 				db.session.commit()
-			
-			flash('Invalid email or password', 'error')
-			return redirect(url_for('login'))
+			except Exception as he:
+				print(f"[LOGIN] History log error: {he}")
 
-		# Successful login
-		if not user.is_active:
-			flash('Your account has been deactivated', 'error')
-			auth_logger.warning(f"Login attempt on inactive account: {email}")
-			return redirect(url_for('login'))
+			# Set session
+			try:
+				session.permanent = True
+				session['user_id'] = user.id
+				session['user_name'] = user.name
+				session['user_email'] = user.email
+				print(f"[LOGIN] Session created for user_id: {user.id}")
+			except Exception as se:
+				print(f"[LOGIN] Session error: {se}")
+				flash('Session error', 'error')
+				return redirect(url_for('login'))
+				
+			auth_logger.info(f"Successful login: {email}")
+			flash(f'Welcome back, {user.name}!', 'success')
+			return redirect(url_for('dashboard'))
 
-		user.reset_failed_attempts()
-		
-		# Log successful login
-		login_history = LoginHistory(
-			user_id=user.id,
-			ip_address=get_client_ip(),
-			user_agent=request.headers.get('User-Agent', '')[:255],
-			success=True
-		)
-		db.session.add(login_history)
-		db.session.commit()
-
-		# Set session
-		session.permanent = True
-		session['user_id'] = user.id
-		session['user_name'] = user.name
-		session['user_email'] = user.email
-		
-		auth_logger.info(f"Successful login: {email} from {get_client_ip()}")
-		flash(f'Welcome back, {user.name}!', 'success')
-		return redirect(url_for('dashboard'))
-
-	return render_template('login.html')
+		return render_template('login.html')
+	except Exception as e:
+		print(f"[LOGIN CRITICAL ERROR] {type(e).__name__}: {e}")
+		import traceback
+		traceback.print_exc()
+		flash('An error occurred. Please try again.', 'error')
+		return redirect(url_for('login'))
 
 
 @app.route('/logout')
@@ -797,10 +880,33 @@ def ai_resume():
 
 if __name__ == '__main__':
 	port = int(os.environ.get('PORT', 5000))
-	# For local debugging enable debug mode temporarily to get stack traces in browser.
-	# Remember to disable debug in production.
-	with app.app_context():
-		db.create_all()
-	print('Database initialized.')
-	print(f'Starting Flask app on http://127.0.0.1:{port}')
+	import sys
+
+	# ensure stdout/stderr use utf-8 to avoid Windows encoding errors
+	try:
+		sys.stdout.reconfigure(encoding='utf-8')
+		sys.stderr.reconfigure(encoding='utf-8')
+	except Exception:
+		pass
+
+	# Initialize database
+	print("[INIT] Initializing database...")
+	try:
+		with app.app_context():
+			# Check if database exists
+			db_file = app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')
+			if os.path.exists(db_file):
+				print(f"[INIT] Database file found: {db_file}")
+			else:
+				print(f"[INIT] Creating new database: {db_file}")
+			
+			db.create_all()
+			print('[INIT] Database initialized successfully.')
+	except Exception as e:
+		print(f"[INIT ERROR] Failed to initialize database: {e}")
+		import traceback
+		traceback.print_exc()
+		raise
+	
+	print(f'[INIT] Starting Flask app on http://127.0.0.1:{port}')
 	app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False)
