@@ -944,6 +944,15 @@ def ai_resume():
 	return jsonify({'resume_html': resume_html, 'feedback': feedback})
 
 
+# Ensure tables are created (for Render + Gunicorn)
+try:
+	with app.app_context():
+		db.create_all()
+	print("[INIT] Database tables ensured.")
+except Exception as e:
+	print("[INIT ERROR] Failed to create tables:", e)
+
+
 if __name__ == '__main__':
 	port = int(os.environ.get('PORT', 5000))
 	import sys
@@ -955,24 +964,5 @@ if __name__ == '__main__':
 	except Exception:
 		pass
 
-	# Initialize database
-	print("[INIT] Initializing database...")
-	try:
-		with app.app_context():
-			# Check if database exists
-			db_file = app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')
-			if os.path.exists(db_file):
-				print(f"[INIT] Database file found: {db_file}")
-			else:
-				print(f"[INIT] Creating new database: {db_file}")
-			
-			db.create_all()
-			print('[INIT] Database initialized successfully.')
-	except Exception as e:
-		print(f"[INIT ERROR] Failed to initialize database: {e}")
-		import traceback
-		traceback.print_exc()
-		raise
-	
-	print(f'[INIT] Starting Flask app on http://127.0.0.1:{port}')
-	app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False)
+	print(f'[INIT] Starting Flask app on port {port}')
+	app.run(host='0.0.0.0', port=port, debug=True)
