@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from functools import wraps
 from datetime import datetime, timedelta
 import logging
+from fpdf import FPDF
 
 # Lazy load genai to avoid slow imports blocking startup
 genai = None
@@ -16,12 +17,6 @@ try:
 except Exception:
 	PyPDF2 = None
 
-try:
-	from fpdf import FPDF
-	print("[FPDF] FPDF library loaded successfully")
-except ImportError as e:
-	FPDF = None
-	print(f"[FPDF] FPDF import failed: {e}")
 
 import os
 from datetime import datetime
@@ -228,179 +223,208 @@ def login_required(f):
 
 
 def generate_resume_pdf(name: str, email: str, phone: str, summary: str, education: str, experience: str, achievements: str, skills: str, declaration: str, template: str = 'professional') -> bytes:
-	"""Generate a resume PDF using FPDF. Supports three templates.
-
-	Templates:
-	- professional: default blue headings with separators.
-	- student: education section first, softer colors.
-	- simple: monochrome output with no lines.
-	"""
+	"""Generate a resume PDF using FPDF."""
 	if FPDF is None:
 		print("ERROR: FPDF library not loaded!")
 		return None
 	
 	try:
-		# Sanitize all inputs to ensure they're safe for PDF
-		name = str(name or "").strip()
+		# Process inputs
+		name = str(name or "Resume").strip()
 		email = str(email or "").strip()
 		phone = str(phone or "").strip()
 		summary = str(summary or "").strip()
-		education = str(education or "").strip()
-		experience = str(experience or "").strip()
-		achievements = str(achievements or "").strip()
-		skills = str(skills or "").strip()
+		education_list = [x.strip() for x in str(education or "").split('\n') if x.strip()]
+		experience_list = [x.strip() for x in str(experience or "").split('\n\n') if x.strip()]
+		if not experience_list and experience:
+			experience_list = [x.strip() for x in str(experience or "").split('\n') if x.strip()]
+		achievements_list = [x.strip() for x in str(achievements or "").split('\n') if x.strip()]
+		skills_list = [x.strip() for x in str(skills or "").split(',') if x.strip()]
 		declaration = str(declaration or "").strip()
 		
-		if not name:
-			print("ERROR: Name is required for PDF generation")
-			return None
-		
-		# choose style parameters based on template
-		if template == 'modern':
-			heading_color = (102, 126, 234)  # purple-blue
-			line_color = (230, 230, 250)
-			header_font = "Arial"
-			header_style = "B"
-			subheading = "Modern"
-		elif template == 'executive':
-			heading_color = (31, 41, 55)  # dark grey
-			line_color = (180, 180, 180)
-			header_font = "Times"
-			header_style = "B"
-			subheading = "Executive"
-		elif template == 'creative':
-			heading_color = (245, 158, 11)  # amber
-			line_color = (255, 200, 124)
-			header_font = "Arial"
-			header_style = "B"
-			subheading = "Creative"
-		elif template == 'academic':
-			heading_color = (0, 0, 0)  # black
-			line_color = (0, 0, 0)
-			header_font = "Times"
-			header_style = "B"
-			subheading = "Academic"
-		elif template == 'minimal':
-			heading_color = (51, 51, 51)  # dark grey
-			line_color = (220, 220, 220)
-			header_font = "Arial"
-			header_style = ""
-			subheading = "Minimal"
-		elif template == 'student':
-			heading_color = (60, 80, 120)
-			line_color = (200, 200, 200)
-			header_font = "Times"
-			header_style = "B"
-			subheading = "STUDENT"
-		elif template == 'simple':
-			heading_color = (0, 0, 0)
-			line_color = (0, 0, 0)
-			header_font = "Courier"
-			header_style = "B"
-			subheading = None
-		else:  # professional
-			heading_color = (40, 50, 100)
-			line_color = (150, 150, 200)
-			header_font = "Arial"
-			header_style = "B"
-			subheading = "Professional"
-		
-
 		pdf = FPDF(format='A4')
 		pdf.add_page()
 		pdf.set_auto_page_break(auto=True, margin=15)
 		
-		# Title - Name
-		if header_style:
-			pdf.set_font(header_font, header_style, 20)
-		else:
-			pdf.set_font(header_font, "", 20)
-		# use a different color for simple template to keep it stark
-		pdf.set_text_color(*heading_color)
-		pdf.cell(0, 10, name, align="C", new_x="LMARGIN", new_y="NEXT")
-		# add template subheading if applicable
-		if subheading:
-			pdf.set_font(header_font, "I", 9)
-			pdf.cell(0, 5, subheading, align="C", new_x="LMARGIN", new_y="NEXT")
-			pdf.ln(3)
-		
-		# Contact information remains grey
-		pdf.set_font("Arial", "", 10)
-		pdf.set_text_color(100, 100, 100)
-		contact_list = []
-		if email:
-			contact_list.append(email)
-		if phone:
-			contact_list.append(phone)
-		
-		if contact_list:
-			contact_text = " | ".join(contact_list)
-			pdf.cell(0, 5, contact_text, align="C", new_x="LMARGIN", new_y="NEXT")
-		
-		# Separator line (skip for simple template)
-		if template != 'simple':
-			pdf.set_draw_color(*line_color)
-			pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-			pdf.ln(5)
-		else:
-			pdf.ln(7)
-		
-		# order sections depending on template
-		sections = []
-		if template == 'academic':
-			sections = ['summary', 'education', 'experience', 'achievements', 'skills', 'declaration']
-		elif template == 'student':
-			sections = ['education', 'experience', 'summary', 'achievements', 'skills', 'declaration']
-		else:
-			sections = ['summary', 'experience', 'education', 'achievements', 'skills', 'declaration']
-		
-		# helper to print a section
-		def print_section(title, text, bullet=False):
-			if not text:
-				return
-			pdf.set_font("Arial", "B", 11)
-			pdf.set_text_color(*heading_color)
-			pdf.cell(0, 6, title.upper(), new_x="LMARGIN", new_y="NEXT")
-			if template != 'simple':
-				pdf.set_draw_color(*line_color)
-				pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-			pdf.ln(3)
+		# Set styling according to templates
+		if template == 'modern':
+			# Draw a colored sidebar
+			pdf.set_fill_color(102, 126, 234)
+			pdf.rect(0, 0, 60, 297, "F")
+			
+			# Sidebar Content (Name & Info)
+			pdf.set_text_color(255, 255, 255)
+			
+			# Name
+			pdf.set_y(20)
+			pdf.set_x(5)
+			pdf.set_font("Arial", "B", 18)
+			pdf.multi_cell(50, 8, name, align="L")
+			
 			pdf.set_font("Arial", "", 10)
-			pdf.set_text_color(0, 0, 0)
-			try:
-				lines = text.split('\n')
-				for line in lines:
-					clean = line.strip()
-					if clean:
-						if bullet:
-							pdf.multi_cell(0, 5, "- " + clean)
-						else:
-							pdf.multi_cell(0, 5, clean)
-			except Exception as e:
-				print(f"Warning: Error in {title.lower()}: {e}")
-			pdf.ln(2)
-		
-		# dispatch printing
-		for sec in sections:
-			if sec == 'summary':
-				print_section('Professional Summary', summary)
-			elif sec == 'experience':
-				print_section('Experience', experience)
-			elif sec == 'education':
-				print_section('Education', education)
-			elif sec == 'achievements':
-				print_section('Achievements', achievements, bullet=True)
-			elif sec == 'skills':
-				print_section('Skills', skills)
-			elif sec == 'declaration':
-				print_section('Declaration', declaration)
-		
-		pdf_bytes = pdf.output()
-		print(f"✓ PDF generated successfully ({len(pdf_bytes)} bytes)")
-		return pdf_bytes
-		
+			pdf.set_y(50)
+			pdf.set_x(5)
+			if email:
+				pdf.multi_cell(50, 5, "Email:\n" + email)
+				pdf.ln(2)
+			pdf.set_x(5)
+			if phone:
+				pdf.multi_cell(50, 5, "Phone:\n" + phone)
+				pdf.ln(5)
+				
+			if skills_list:
+				pdf.set_x(5)
+				pdf.set_font("Arial", "B", 11)
+				pdf.cell(50, 8, "SKILLS", new_x="LMARGIN", new_y="NEXT")
+				pdf.set_font("Arial", "", 10)
+				for skill in skills_list:
+					pdf.set_x(5)
+					pdf.multi_cell(50, 5, f"- {skill}")
+			
+			# Main Content Margin
+			left_margin = 65
+			pdf.set_y(20)
+			pdf.set_left_margin(left_margin)
+			
+			def print_section(title, content_list, bullet=False, is_summary=False):
+				if not content_list and not is_summary: return
+				pdf.set_text_color(102, 126, 234)
+				pdf.set_font("Arial", "B", 12)
+				pdf.cell(0, 8, title.upper(), new_x="LMARGIN", new_y="NEXT")
+				pdf.set_draw_color(102, 126, 234)
+				pdf.line(left_margin, pdf.get_y(), 200, pdf.get_y())
+				pdf.ln(2)
+				pdf.set_text_color(51, 51, 51)
+				pdf.set_font("Arial", "", 10)
+				
+				if is_summary and content_list:
+					pdf.multi_cell(0, 5, content_list)
+					pdf.ln(5)
+					return
+				
+				for item in content_list:
+					clean = str(item).replace("<br/>", "")
+					if bullet:
+						pdf.multi_cell(0, 5, chr(149) + " " + clean)
+					else:
+						pdf.multi_cell(0, 5, clean)
+					pdf.ln(2)
+				pdf.ln(3)
+
+			print_section("Professional Summary", summary, is_summary=True)
+			print_section("Experience", experience_list)
+			print_section("Education", education_list)
+			print_section("Achievements", achievements_list, bullet=True)
+			
+		elif template == 'creative':
+			pdf.set_text_color(245, 158, 11)
+			pdf.set_font("Helvetica", "B", 24)
+			pdf.cell(0, 10, name.upper(), align="C", new_x="LMARGIN", new_y="NEXT")
+			
+			pdf.set_text_color(100, 100, 100)
+			pdf.set_font("Helvetica", "", 11)
+			contact = []
+			if email: contact.append(email)
+			if phone: contact.append(phone)
+			if contact:
+				pdf.cell(0, 6, " | ".join(contact), align="C", new_x="LMARGIN", new_y="NEXT")
+			
+			pdf.set_draw_color(245, 158, 11)
+			pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+			pdf.ln(8)
+			
+			def print_section(title, content_list, bullet=False, is_summary=False):
+				if not content_list and not is_summary: return
+				pdf.set_text_color(245, 158, 11)
+				pdf.set_font("Helvetica", "B", 14)
+				pdf.cell(0, 8, str(title), new_x="LMARGIN", new_y="NEXT")
+				pdf.set_text_color(60, 60, 60)
+				pdf.set_font("Helvetica", "", 11)
+				
+				if is_summary and content_list:
+					pdf.multi_cell(0, 6, str(content_list))
+					pdf.ln(4)
+					return
+					
+				for item in content_list:
+					clean = str(item).replace("<br/>", "")
+					if bullet:
+						pdf.multi_cell(0, 6, chr(149) + " " + clean)
+					else:
+						pdf.multi_cell(0, 6, clean)
+					pdf.ln(2)
+				pdf.ln(4)
+				
+			print_section("Summary", summary, is_summary=True)
+			print_section("Experience", experience_list)
+			print_section("Education", education_list)
+			if skills_list:
+				print_section("Skills", [", ".join(skills_list)], is_summary=True)
+			print_section("Achievements", achievements_list, bullet=True)
+
+		else: # Professional / default
+			pdf.set_text_color(40, 50, 100)
+			pdf.set_font("Times", "B", 22)
+			pdf.cell(0, 12, name, align="C", new_x="LMARGIN", new_y="NEXT")
+			
+			pdf.set_text_color(80, 80, 80)
+			pdf.set_font("Times", "I", 11)
+			contact = []
+			if email: contact.append(email)
+			if phone: contact.append(phone)
+			if contact:
+				pdf.cell(0, 6, " | ".join(contact), align="C", new_x="LMARGIN", new_y="NEXT")
+			
+			pdf.set_draw_color(150, 150, 200)
+			pdf.line(15, pdf.get_y()+2, 195, pdf.get_y()+2)
+			pdf.ln(8)
+			
+			def print_section(title, content_list, bullet=False, is_summary=False):
+				if not content_list and not is_summary: return
+				pdf.set_text_color(40, 50, 100)
+				pdf.set_font("Times", "B", 13)
+				pdf.cell(0, 8, str(title).upper(), new_x="LMARGIN", new_y="NEXT")
+				pdf.set_draw_color(200, 200, 200)
+				pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+				pdf.ln(3)
+				pdf.set_text_color(30, 30, 30)
+				pdf.set_font("Times", "", 11)
+				
+				if is_summary and content_list:
+					pdf.multi_cell(0, 6, str(content_list))
+					pdf.ln(4)
+					return
+					
+				for item in content_list:
+					clean = str(item).replace("<br/>", "")
+					if bullet:
+						pdf.multi_cell(0, 6, chr(149) + " " + clean)
+					else:
+						pdf.multi_cell(0, 6, clean)
+					pdf.ln(2)
+				pdf.ln(4)
+				
+			print_section("Professional Summary", summary, is_summary=True)
+			print_section("Experience", experience_list)
+			print_section("Education", education_list)
+			if skills_list:
+				print_section("Technical Skills", [", ".join(skills_list)], is_summary=True)
+			print_section("Achievements", achievements_list, bullet=True)
+			
+		if declaration:
+			pdf.ln(10)
+			pdf.set_font("Arial", "I", 9)
+			pdf.set_text_color(120, 120, 120)
+			pdf.multi_cell(0, 5, declaration, align="C")
+
+		# FPDF dest='S' returns a string in Python 3, which needs to be encoded to bytes
+		pdf_string = pdf.output(dest='S')
+		if isinstance(pdf_string, str):
+			return pdf_string.encode('latin-1')
+		return pdf_string
+
 	except Exception as e:
-		print(f"ERROR in PDF generation: {str(e)}")
+		print(f"PDF generation error (FPDF): {str(e)}")
 		import traceback
 		traceback.print_exc()
 		return None
@@ -716,11 +740,6 @@ def builder():
 			template_choice = request.form.get('template', 'professional')
 			print(f"Template selected: {template_choice}")
 			# Generate PDF resume
-			if FPDF is None:
-				message = 'PDF generation library not available.'
-				print(f"ERROR: FPDF is None!")
-				return render_template('builder.html', message=message)
-            
 			pdf_content = generate_resume_pdf(name, email, phone, summary, education, experience, achievements, skills, declaration, template=template_choice)
 			
 			if pdf_content is None:
