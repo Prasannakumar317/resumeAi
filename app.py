@@ -26,6 +26,7 @@ except ImportError as e:
 import os
 from datetime import datetime
 import re
+import io
 try:
 	import requests
 except Exception:
@@ -226,8 +227,14 @@ def login_required(f):
 	return decorated_function
 
 
-def generate_resume_pdf(name: str, email: str, phone: str, summary: str, education: str, experience: str, achievements: str, skills: str, declaration: str) -> bytes:
-	"""Generate a professional resume PDF using FPDF - Simple and clean"""
+def generate_resume_pdf(name: str, email: str, phone: str, summary: str, education: str, experience: str, achievements: str, skills: str, declaration: str, template: str = 'professional') -> bytes:
+	"""Generate a resume PDF using FPDF. Supports three templates.
+
+	Templates:
+	- professional: default blue headings with separators.
+	- student: education section first, softer colors.
+	- simple: monochrome output with no lines.
+	"""
 	if FPDF is None:
 		print("ERROR: FPDF library not loaded!")
 		return None
@@ -248,16 +255,76 @@ def generate_resume_pdf(name: str, email: str, phone: str, summary: str, educati
 			print("ERROR: Name is required for PDF generation")
 			return None
 		
+		# choose style parameters based on template
+		if template == 'modern':
+			heading_color = (102, 126, 234)  # purple-blue
+			line_color = (230, 230, 250)
+			header_font = "Arial"
+			header_style = "B"
+			subheading = "Modern"
+		elif template == 'executive':
+			heading_color = (31, 41, 55)  # dark grey
+			line_color = (180, 180, 180)
+			header_font = "Times"
+			header_style = "B"
+			subheading = "Executive"
+		elif template == 'creative':
+			heading_color = (245, 158, 11)  # amber
+			line_color = (255, 200, 124)
+			header_font = "Arial"
+			header_style = "B"
+			subheading = "Creative"
+		elif template == 'academic':
+			heading_color = (0, 0, 0)  # black
+			line_color = (0, 0, 0)
+			header_font = "Times"
+			header_style = "B"
+			subheading = "Academic"
+		elif template == 'minimal':
+			heading_color = (51, 51, 51)  # dark grey
+			line_color = (220, 220, 220)
+			header_font = "Arial"
+			header_style = ""
+			subheading = "Minimal"
+		elif template == 'student':
+			heading_color = (60, 80, 120)
+			line_color = (200, 200, 200)
+			header_font = "Times"
+			header_style = "B"
+			subheading = "STUDENT"
+		elif template == 'simple':
+			heading_color = (0, 0, 0)
+			line_color = (0, 0, 0)
+			header_font = "Courier"
+			header_style = "B"
+			subheading = None
+		else:  # professional
+			heading_color = (40, 50, 100)
+			line_color = (150, 150, 200)
+			header_font = "Arial"
+			header_style = "B"
+			subheading = "Professional"
+		
+
 		pdf = FPDF(format='A4')
 		pdf.add_page()
 		pdf.set_auto_page_break(auto=True, margin=15)
 		
 		# Title - Name
-		pdf.set_font("Arial", "B", 18)
-		pdf.set_text_color(40, 50, 100)
+		if header_style:
+			pdf.set_font(header_font, header_style, 20)
+		else:
+			pdf.set_font(header_font, "", 20)
+		# use a different color for simple template to keep it stark
+		pdf.set_text_color(*heading_color)
 		pdf.cell(0, 10, name, align="C", new_x="LMARGIN", new_y="NEXT")
+		# add template subheading if applicable
+		if subheading:
+			pdf.set_font(header_font, "I", 9)
+			pdf.cell(0, 5, subheading, align="C", new_x="LMARGIN", new_y="NEXT")
+			pdf.ln(3)
 		
-		# Contact information
+		# Contact information remains grey
 		pdf.set_font("Arial", "", 10)
 		pdf.set_text_color(100, 100, 100)
 		contact_list = []
@@ -270,125 +337,63 @@ def generate_resume_pdf(name: str, email: str, phone: str, summary: str, educati
 			contact_text = " | ".join(contact_list)
 			pdf.cell(0, 5, contact_text, align="C", new_x="LMARGIN", new_y="NEXT")
 		
-		# Separator line
-		pdf.set_draw_color(150, 150, 200)
-		pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-		pdf.ln(5)
-		
-		# Professional Summary Section
-		if summary:
-			pdf.set_font("Arial", "B", 11)
-			pdf.set_text_color(40, 50, 100)
-			pdf.cell(0, 6, "PROFESSIONAL SUMMARY", new_x="LMARGIN", new_y="NEXT")
-			# Add line below heading
-			pdf.set_draw_color(150, 150, 200)
+		# Separator line (skip for simple template)
+		if template != 'simple':
+			pdf.set_draw_color(*line_color)
 			pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+			pdf.ln(5)
+		else:
+			pdf.ln(7)
+		
+		# order sections depending on template
+		sections = []
+		if template == 'academic':
+			sections = ['summary', 'education', 'experience', 'achievements', 'skills', 'declaration']
+		elif template == 'student':
+			sections = ['education', 'experience', 'summary', 'achievements', 'skills', 'declaration']
+		else:
+			sections = ['summary', 'experience', 'education', 'achievements', 'skills', 'declaration']
+		
+		# helper to print a section
+		def print_section(title, text, bullet=False):
+			if not text:
+				return
+			pdf.set_font("Arial", "B", 11)
+			pdf.set_text_color(*heading_color)
+			pdf.cell(0, 6, title.upper(), new_x="LMARGIN", new_y="NEXT")
+			if template != 'simple':
+				pdf.set_draw_color(*line_color)
+				pdf.line(15, pdf.get_y(), 195, pdf.get_y())
 			pdf.ln(3)
 			pdf.set_font("Arial", "", 10)
 			pdf.set_text_color(0, 0, 0)
 			try:
-				pdf.multi_cell(0, 5, summary)
+				lines = text.split('\n')
+				for line in lines:
+					clean = line.strip()
+					if clean:
+						if bullet:
+							pdf.multi_cell(0, 5, "- " + clean)
+						else:
+							pdf.multi_cell(0, 5, clean)
 			except Exception as e:
-				print(f"Warning: Error in summary: {e}")
-				pdf.multi_cell(0, 5, "[Summary could not be displayed]")
+				print(f"Warning: Error in {title.lower()}: {e}")
 			pdf.ln(2)
 		
-		# Experience Section
-		if experience:
-			pdf.set_font("Arial", "B", 11)
-			pdf.set_text_color(40, 50, 100)
-			pdf.cell(0, 6, "EXPERIENCE", new_x="LMARGIN", new_y="NEXT")
-			# Add line below heading
-			pdf.set_draw_color(150, 150, 200)
-			pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-			pdf.ln(3)
-			pdf.set_font("Arial", "", 10)
-			pdf.set_text_color(0, 0, 0)
-			try:
-				exp_lines = experience.split('\n')
-				for exp_line in exp_lines:
-					clean_line = exp_line.strip()
-					if clean_line:
-						pdf.multi_cell(0, 5, clean_line)
-			except Exception as e:
-				print(f"Warning: Error in experience: {e}")
-			pdf.ln(2)
-		
-		# Education Section
-		if education:
-			pdf.set_font("Arial", "B", 11)
-			pdf.set_text_color(40, 50, 100)
-			pdf.cell(0, 6, "EDUCATION", new_x="LMARGIN", new_y="NEXT")
-			# Add line below heading
-			pdf.set_draw_color(150, 150, 200)
-			pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-			pdf.ln(3)
-			pdf.set_font("Arial", "", 10)
-			pdf.set_text_color(0, 0, 0)
-			try:
-				edu_lines = education.split('\n')
-				for edu_line in edu_lines:
-					clean_line = edu_line.strip()
-					if clean_line:
-						pdf.multi_cell(0, 5, clean_line)
-			except Exception as e:
-				print(f"Warning: Error in education: {e}")
-			pdf.ln(2)
-		
-		# Achievements Section
-		if achievements:
-			pdf.set_font("Arial", "B", 11)
-			pdf.set_text_color(40, 50, 100)
-			pdf.cell(0, 6, "ACHIEVEMENTS", new_x="LMARGIN", new_y="NEXT")
-			# Add line below heading
-			pdf.set_draw_color(150, 150, 200)
-			pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-			pdf.ln(3)
-			pdf.set_font("Arial", "", 10)
-			pdf.set_text_color(0, 0, 0)
-			try:
-				ach_lines = achievements.split('\n')
-				for ach_line in ach_lines:
-					clean_ach = ach_line.strip()
-					if clean_ach:
-						pdf.multi_cell(0, 5, "- " + clean_ach)
-			except Exception as e:
-				print(f"Warning: Error in achievements: {e}")
-			pdf.ln(2)
-		
-		# Skills Section
-		if skills:
-			pdf.set_font("Arial", "B", 11)
-			pdf.set_text_color(40, 50, 100)
-			pdf.cell(0, 6, "SKILLS", new_x="LMARGIN", new_y="NEXT")
-			# Add line below heading
-			pdf.set_draw_color(150, 150, 200)
-			pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-			pdf.ln(3)
-			pdf.set_font("Arial", "", 10)
-			pdf.set_text_color(0, 0, 0)
-			try:
-				skills_text = skills.replace('\n', ', ')
-				pdf.multi_cell(0, 5, skills_text)
-			except Exception as e:
-				print(f"Warning: Error in skills: {e}")
-			pdf.ln(2)
-		
-		# Declaration Section
-		if declaration:
-			pdf.set_font("Arial", "B", 11)
-			pdf.set_text_color(40, 50, 100)
-			pdf.cell(0, 6, "DECLARATION", new_x="LMARGIN", new_y="NEXT")
-			# Add line below heading
-			pdf.set_draw_color(150, 150, 200)
-			pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-			pdf.ln(3)
-			pdf.set_font("Arial", "", 10)
-			pdf.set_text_color(0, 0, 0)
-			try:
-				pdf.multi_cell(0, 5, declaration)
-			except Exception as e:
-				print(f"Warning: Error in declaration: {e}")
+		# dispatch printing
+		for sec in sections:
+			if sec == 'summary':
+				print_section('Professional Summary', summary)
+			elif sec == 'experience':
+				print_section('Experience', experience)
+			elif sec == 'education':
+				print_section('Education', education)
+			elif sec == 'achievements':
+				print_section('Achievements', achievements, bullet=True)
+			elif sec == 'skills':
+				print_section('Skills', skills)
+			elif sec == 'declaration':
+				print_section('Declaration', declaration)
 		
 		pdf_bytes = pdf.output()
 		print(f"✓ PDF generated successfully ({len(pdf_bytes)} bytes)")
@@ -636,6 +641,38 @@ def logout():
 	flash('Logged out successfully', 'info')
 	return redirect(url_for('index'))
 
+@app.route('/preview', methods=['POST'])
+def preview():
+	"""Render an HTML preview of the resume based on submitted form data.
+
+	The builder form posts raw text blobs; split them into lists here so the
+	Jinja templates can iterate cleanly and apply per-template ordering.
+	"""
+	name = request.form.get('name', '').strip()
+	email = request.form.get('email', '').strip()
+	phone = request.form.get('phone', '').strip()
+	summary = request.form.get('summary', '').strip()
+	declaration = request.form.get('declaration', '').strip()
+
+	experience = '\n'.join([e.strip() for e in request.form.getlist('experience') if e.strip()])
+	education = '\n'.join([e.strip() for e in request.form.getlist('education') if e.strip()])
+	achievements = '\n'.join([a.strip() for a in request.form.getlist('achievements') if a.strip()])
+	skills = ', '.join([s.strip() for s in request.form.getlist('skills') if s.strip()])
+	template_choice = request.form.get('template', 'professional')
+
+	# convert the multiline/CSV strings into python lists for Jinja iteration
+	experience_list = [line for line in experience.split('\n') if line]
+	education_list = [line for line in education.split('\n') if line]
+	achievements_list = [line for line in achievements.split('\n') if line]
+	skills_list = [s.strip() for s in skills.split(',') if s.strip()]
+
+	return render_template(
+		f'preview_{template_choice}.html',
+		name=name, email=email, phone=phone, summary=summary,
+		experience_list=experience_list, education_list=education_list,
+		achievements_list=achievements_list, skills_list=skills_list,
+		declaration=declaration
+	)
 
 @app.route('/builder', methods=['GET', 'POST'])
 def builder():
@@ -676,107 +713,58 @@ def builder():
 			print(f"Achievements entries: {len(achievements_list)}")
 			print(f"Skills entries: {len(skills_list)}")
 
+			template_choice = request.form.get('template', 'professional')
+			print(f"Template selected: {template_choice}")
 			# Generate PDF resume
 			if FPDF is None:
 				message = 'PDF generation library not available.'
 				print(f"ERROR: FPDF is None!")
 				return render_template('builder.html', message=message)
-			
-			pdf_content = generate_resume_pdf(name, email, phone, summary, education, experience, achievements, skills, declaration)
+            
+			pdf_content = generate_resume_pdf(name, email, phone, summary, education, experience, achievements, skills, declaration, template=template_choice)
 			
 			if pdf_content is None:
 				message = 'Failed to generate PDF. Please check your input and try again.'
 				print(f"ERROR: PDF content is None after generation attempt")
 				return render_template('builder.html', message=message)
 			
-			# Save PDF file
+			# Save PDF file to disk for records
 			safe_name = secure_filename(name) or 'resume'
 			timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-			filename = f"{safe_name}_{timestamp}.pdf"
+			filename = f"{safe_name}_{template_choice}_{timestamp}.pdf"
 			save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+			try:
+				with open(save_path, 'wb') as fh:
+					fh.write(pdf_content)
+				message = f"✓ {template_choice.upper()} template resume created successfully!"
+				download = filename
+				print(f"✓ Resume saved: {filename} ({template_choice} template)")
+			except Exception as e:
+				print(f"ERROR saving PDF to disk: {e}")
+				message = f"{template_choice.upper()} template resume generated, but saving failed: {e}"
 			
-			with open(save_path, 'wb') as fh:
-				fh.write(pdf_content)
-			
-			message = f"✓ Professional resume created successfully for {name}!"
-			download = filename
-			print(f"✓ Resume saved: {filename}")
-			
+			# Return PDF bytes directly to avoid any disk-read mismatch
+			try:
+				from flask import send_file
+				buf = io.BytesIO(pdf_content)
+				buf.seek(0)
+				print(f"[DOWNLOAD] sending {filename} ({template_choice} template)")
+				resp = send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=filename)
+				# prevent caching by browsers/proxies
+				resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+				return resp
+			except Exception as e:
+				print(f"ERROR sending PDF in-memory: {e}")
+				# Fall back to offering the download link in page
+				message = f"{message} (saved, but automatic download failed)"
+				
 		except Exception as e:
 			message = f'Error: {str(e)}'
 			print(f"ERROR in builder route: {str(e)}")
 			import traceback
 			traceback.print_exc()
-
+	
 	return render_template('builder.html', message=message, download=download)
-
-
-@app.route('/chat', methods=['POST', 'GET', 'OPTIONS'])
-@csrf.exempt  # Exempt chat from CSRF since it's called from JavaScript
-def chat():
-	"""Real-time resume assistant with intelligent local responses"""
-	# Handle CORS preflight
-	if request.method == 'OPTIONS':
-		response = jsonify({'status': 'ok'})
-		response.headers.add('Access-Control-Allow-Origin', '*')
-		response.headers.add('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
-		response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-		return response, 200
-	
-	if request.method == 'GET':
-		return jsonify({'status': 'ok', 'message': 'Chat endpoint is working'}), 200
-	
-	try:
-		print(f"\n[CHAT] Request received")
-		
-		data = request.get_json(silent=True) or {}
-		message = (data.get('message') or '').strip()
-		
-		if not message:
-			return jsonify({'reply': 'How can I help? Ask anything about your resume!'}), 200
-		
-		msg_lower = message.lower()
-		print(f"[CHAT] Message: '{message}'")
-		
-		# Local response system - No API timeouts
-		if any(word in msg_lower for word in ['improve', 'better', 'enhance', 'bullet']):
-			reply = "Use action verbs (Led, Developed, Increased), add numbers/metrics, show impact, and be specific. Example: 'Led redesign of website, improving load speed by 40%' vs 'Worked on website'."
-		
-		elif any(word in msg_lower for word in ['keyword', 'ats', 'optimize']):
-			reply = "Match job description keywords, use clear section headings (Experience, Skills, Education), keep plain text (no graphics), match job titles, create a dedicated skills list."
-		
-		elif any(word in msg_lower for word in ['summary', 'profile', 'objective', 'intro']):
-			reply = "Write: 'Results-driven [Role] with [X years] in [Industry]. Proven expertise in [Skills]. Skilled in [Technical]. Seeking [Position].' Make it specific to your target role."
-		
-		elif any(word in msg_lower for word in ['skill', 'add', 'competency']):
-			reply = "List: Technical skills (languages, tools), Soft skills (Leadership, Communication), Industry expertise, Management/Project skills. Prioritize skills from the job you're applying for."
-		
-		elif any(word in msg_lower for word in ['metric', 'number', 'impact', 'result', 'achieve']):
-			reply = "Add metrics: Revenue ($2M), Performance (35% improvement), Time (2-month reduction), Scale (team of 12), Quality (99.9% uptime), Growth (150% increase)."
-		
-		elif any(word in msg_lower for word in ['format', 'structure', 'layout']):
-			reply = "Best format: Name + contact info at top, 2-3 line summary, experience (recent first), skills section, education. 1-2 pages, clear headings, bullets, standard fonts, save as PDF."
-		
-		elif any(word in msg_lower for word in ['experience', 'job', 'work', 'position']):
-			reply = "Format: [Action Verb] [Task] [Result]. Example: 'Led team of 8 to deliver CRM 2 weeks early, saving $500K.' Use 4-6 bullets per job with metrics."
-		
-		elif any(word in msg_lower for word in ['education', 'degree', 'certification', 'course']):
-			reply = "Include: Degree, University, Date, Relevant coursework, Honors (GPA > 3.5), Certifications. Format: Bachelor Science Computer Science | MIT | May 2020."
-		
-		elif any(word in msg_lower for word in ['project', 'portfolio', 'github']):
-			reply = "List: Project name, Tech stack, Brief 1-2 line description, Impact/users. Example: Task App (React, Node, MongoDB) - Real-time collaboration tool, 500+ users."
-		
-		else:
-			reply = "Resume Coach here! Ask me about: bullets, keywords/ATS, summary, skills, metrics, format, experience, education, or projects. What would you like help with?"
-		
-		print(f"[CHAT] Response generated: {len(reply)} chars")
-		return jsonify({'reply': reply}), 200
-	
-	except Exception as e:
-		print(f"[CHAT ERROR] {type(e).__name__}: {str(e)}")
-		import traceback
-		traceback.print_exc()
-		return jsonify({'reply': 'Error processing request. Please try again.'}), 500
 
 
 @app.route('/download/<path:filename>')

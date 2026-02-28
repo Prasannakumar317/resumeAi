@@ -1,165 +1,297 @@
 {% extends "base.html" %}
 
-{% block title %}Build Resume — Resume AI{% endblock %}
+{% block title %}Resume Builder — Resume Builder{% endblock %}
 
 {% block content %}
-<div class="container mt-5 mb-5">
-<div class="glass glass-glow p-5 text-white fade-in">
+<div class="container py-4">
+  <div class="glass-panel p-5 mx-auto fade-up" style="max-width: 1000px; border-top: 4px solid var(--brand-primary);">
 
-<div class="text-center mb-5">
-  <div style="font-size: 3rem;">📝</div>
-  <h2 class="fw-bold mt-3">Build Your Professional Resume</h2>
-  <p class="muted mt-2">Fill in your information and download your resume instantly</p>
-</div>
-
-{% if message %}
-<div class="alert alert-{{ 'danger' if message.startswith('Failed') else 'success' }} alert-dismissible fade show fade-in" role="alert">
-  <strong>{{ message }}</strong>
-  {% if download %}
-  <div class="mt-3"><a class="btn btn-light btn-sm" href="/download/{{download}}">⬇️ Download Resume</a></div>
-  {% endif %}
-  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
-</div>
-{% endif %}
-
-<form method="POST" action="/builder" class="mt-5">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-  <div class="row g-3">
-    <div class="col-md-6">
-      <label class="form-label">Full Name *</label>
-      <input class="form-control" type="text" name="name" placeholder="John Doe" required>
-    </div>
-    <div class="col-md-6">
-      <label class="form-label">Mobile Number</label>
-      <input class="form-control" type="tel" name="phone" placeholder="+1 (555) 123-4567">
-    </div>
-  </div>
-
-  <div class="mt-3">
-    <label class="form-label">Email Address</label>
-    <input class="form-control" type="email" name="email" placeholder="john@example.com">
-  </div>
-
-  <div class="mt-4">
-    <label class="form-label">Professional Summary</label>
-    <textarea class="form-control" name="summary" rows="3" placeholder="Brief summary of your professional background and goals..."></textarea>
-  </div>
-
-  <!-- Experience Section -->
-  <div class="mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <label class="form-label mb-0">Experience</label>
-      <button type="button" class="btn btn-sm btn-outline-light" onclick="addExperience()">+ Add More</button>
-    </div>
-    <div id="experienceContainer">
-      <div class="mb-2">
-        <textarea class="form-control" name="experience" rows="3" placeholder="Company Name, Position (2020-2024)&#10;Key achievements and responsibilities"></textarea>
+    <div class="row mb-5 pb-4 border-bottom border-strong align-items-center">
+      <div class="col-md-8">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="icon-box m-0"
+            style="width: 48px; height: 48px; color: #3b82f6; background: rgba(59, 130, 246, 0.1);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </div>
+          <h2 class="fw-bold m-0" style="font-size: 1.8rem;">Resume Builder</h2>
+        </div>
+        <p class="text-secondary mb-0 ms-5 ps-3">Enter your details below to generate a clean, ATS-friendly resume.</p>
+      </div>
+      <div class="col-md-4 text-md-end mt-4 mt-md-0">
+        <span class="badge px-3 py-2"
+          style="background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2);">System
+          Online</span>
       </div>
     </div>
-  </div>
 
-  <!-- Education Section -->
-  <div class="mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <label class="form-label mb-0">Education</label>
-      <button type="button" class="btn btn-sm btn-outline-light" onclick="addEducation()">+ Add More</button>
-    </div>
-    <div id="educationContainer">
-      <div class="mb-2">
-        <textarea class="form-control" name="education" rows="2" placeholder="Degree, University Name (Graduation Year)"></textarea>
+    {% if message %}
+    {# htmlhint inline-style-disabled:false #}
+    {% set is_error = message.startswith('Failed') %}
+    <div class="alert alert-{{ 'danger' if is_error else 'success' }} mb-5 shadow-sm" role="alert"
+      style="border-left: 4px solid {{ '#f87171' if is_error else '#34d399' }}">
+      <div class="d-flex align-items-center w-100">
+        <div class="flex-grow-1">
+          <strong>{{ message }}</strong>
+          {% if download %}
+          <div class="mt-3">
+            <a class="btn btn-sm btn-glow-primary px-4 py-2" href="/download/{{download}}">
+              <svg width="16" height="16" class="me-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Download Artifact
+            </a>
+          </div>
+          {% endif %}
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
     </div>
-  </div>
+    {% endif %}
 
-  <!-- Achievements Section -->
-  <div class="mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <label class="form-label mb-0">Achievements</label>
-      <button type="button" class="btn btn-sm btn-outline-light" onclick="addAchievement()">+ Add More</button>
-    </div>
-    <div id="achievementsContainer">
-      <div class="mb-2">
-        <textarea class="form-control" name="achievements" rows="2" placeholder="Award or recognition received"></textarea>
+    <form method="POST" action="/builder" class="needs-validation">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <!-- Section 1: Personal -->
+      <h5 class="text-primary fw-bold mb-4 tracking-wider text-uppercase"
+        style="letter-spacing: 0.1em; font-size: 0.85rem;">01. Personal</h5>
+      <div class="row g-4 mb-5">
+        <div class="col-md-6 form-group floating-label mb-0">
+          <label class="form-label">Full Name <span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="name" placeholder="John Doe" required>
+        </div>
+        <div class="col-md-6 form-group floating-label mb-0">
+          <label class="form-label">Phone</label>
+          <input class="form-control" type="tel" name="phone" placeholder="+1 (555) 123-4567">
+        </div>
+        <div class="col-12 form-group floating-label mb-0">
+          <label class="form-label">Email</label>
+          <input class="form-control" type="email" name="email" placeholder="john@domain.com">
+        </div>
+        <div class="col-12 form-group floating-label mb-0">
+          <label class="form-label">Summary</label>
+          <textarea class="form-control" name="summary" rows="3" placeholder="Short summary or headline..."></textarea>
+        </div>
+        <div class="col-12 form-group mb-3">
+          <label class="form-label">Template Style</label>
+          <select id="templateSelect" name="template" class="form-select">
+            <option value="modern">Modern Professional (sidebar + gradient)</option>
+            <option value="executive">Executive (traditional corporate)</option>
+            <option value="creative">Creative (colorful + modern)</option>
+            <option value="academic">Academic (CV-style serif)</option>
+            <option value="minimal">Minimal (ultra-clean)</option>
+            <option value="professional">Professional (classic)</option>
+            <option value="student">Student (education-first)</option>
+            <option value="simple">Simple (monochrome)</option>
+          </select>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Skills Section -->
-  <div class="mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <label class="form-label mb-0">Skills</label>
-      <button type="button" class="btn btn-sm btn-outline-light" onclick="addSkill()">+ Add More</button>
-    </div>
-    <div id="skillsContainer">
-      <div class="mb-2">
-        <input class="form-control" type="text" name="skills" placeholder="Python, JavaScript, React (comma separated)">
+      <!-- Section 2: Experience -->
+      <h5 class="text-primary fw-bold mb-4 tracking-wider text-uppercase border-top border-strong pt-5"
+        style="letter-spacing: 0.1em; font-size: 0.85rem;">02. Experience</h5>
+
+      <div class="form-group mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <label class="form-label m-0 text-white fs-6">Experience</label>
+          <button type="button" class="btn btn-sm btn-outline-glass" onclick="addExperience()">
+            <svg width="14" height="14" class="me-1" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg> Add Node
+          </button>
+        </div>
+        <div id="experienceContainer" class="d-flex flex-column gap-3">
+          <div class="d-flex gap-3 align-items-start">
+            <textarea class="form-control flex-grow-1" name="experience" rows="3"
+              placeholder="Organization, Role Title (Duration)&#10;Tactical achievements and metrics administered"></textarea>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <div class="mt-4">
-    <label class="form-label">Declaration</label>
-    <textarea class="form-control" name="declaration" rows="3" placeholder="I hereby declare that the above information is true to the best of my knowledge and belief."></textarea>
-  </div>
+      <!-- Section 3: Education -->
+      <h5 class="text-primary fw-bold mb-4 tracking-wider text-uppercase border-top border-strong pt-5"
+        style="letter-spacing: 0.1em; font-size: 0.85rem;">03. Education</h5>
 
-  <div class="d-flex justify-content-between gap-3 mt-5">
-    <button type="submit" class="btn btn-light fw-bold">✓ Save & Download Resume</button>
-    <a class="btn btn-outline-light" href="/dashboard">← Back to Dashboard</a>
+      <div class="form-group mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <label class="form-label m-0 text-white fs-6">Education</label>
+          <button type="button" class="btn btn-sm btn-outline-glass" onclick="addEducation()">
+            <svg width="14" height="14" class="me-1" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg> Add Node
+          </button>
+        </div>
+        <div id="educationContainer" class="d-flex flex-column gap-3">
+          <div class="d-flex gap-3 align-items-start">
+            <textarea class="form-control flex-grow-1" name="education" rows="2"
+              placeholder="Degree Designation, Institution (Certification Year)"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Extras -->
+      <h5 class="text-primary fw-bold mb-4 tracking-wider text-uppercase border-top border-strong pt-5"
+        style="letter-spacing: 0.1em; font-size: 0.85rem;">04. Extras</h5>
+
+      <div class="row g-5 mb-5">
+        <div class="col-md-6 form-group m-0">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <label class="form-label m-0 text-white fs-6">Achievements</label>
+            <button type="button" class="btn btn-sm btn-outline-glass px-2 py-1" onclick="addAchievement()">+</button>
+          </div>
+          <div id="achievementsContainer" class="d-flex flex-column gap-3">
+            <div class="d-flex gap-2 align-items-start">
+              <textarea class="form-control flex-grow-1" name="achievements" rows="2"
+                placeholder="Award or milestone classification"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 form-group m-0">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <label class="form-label m-0 text-white fs-6">Skills</label>
+            <button type="button" class="btn btn-sm btn-outline-glass px-2 py-1" onclick="addSkill()">+</button>
+          </div>
+          <div id="skillsContainer" class="d-flex flex-column gap-3">
+            <div class="d-flex gap-2 align-items-start">
+              <input class="form-control flex-grow-1" type="text" name="skills"
+                placeholder="Python, JavaScript, AWS (comma separated)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group mb-5">
+        <label class="form-label text-white fs-6">Agreement</label>
+        <textarea class="form-control" name="declaration" rows="2" placeholder="I confirm the information is accurate."></textarea>
+      </div>
+
+      <!-- Action Footer -->
+      <div
+        class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-4 mt-5 pt-4 border-top border-strong">
+        <a class="text-muted text-decoration-none small hover-text-primary" href="/dashboard">
+          <svg width="14" height="14" class="me-1" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          Back to Dashboard
+        </a>
+        <div class="d-flex gap-2">
+          <button id="previewBtn" type="button" class="btn btn-outline-glass px-4 py-3">Preview</button>
+          <button id="genDownloadBtn" type="button" class="btn btn-glow-primary px-5 py-3">
+            Generate & Download
+          </button>
+          <button type="submit" class="btn btn-outline-primary px-5 py-3">
+            Generate Resume
+          <svg width="18" height="18" class="ms-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+          </button>
+        </div>
+      </div>
+    </form>
+
   </div>
-</form>
-</div>
 </div>
 
 <script>
-// Add Experience Field
-function addExperience() {
-  const container = document.getElementById('experienceContainer');
-  const div = document.createElement('div');
-  div.className = 'mb-2 d-flex gap-2';
-  div.innerHTML = `
-    <textarea class="form-control" name="experience" rows="3" placeholder="Company Name, Position&#10;Key achievements"></textarea>
-    <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">Remove</button>
-  `;
-  container.appendChild(div);
-}
+  // Preview builder output by POSTing to the server and opening the returned HTML
+  document.getElementById('previewBtn').addEventListener('click', async () => {
+    const form = document.querySelector('form[action="/builder"]');
+    console.log('Preview template:', form.elements['template'].value);
+    const data = new FormData(form);
+    try {
+      const resp = await fetch('/preview', { method: 'POST', body: data });
+      const html = await resp.text();
+      const w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
+    } catch (err) {
+      console.error('Preview failed', err);
+      alert('Could not load preview. Please try generating the resume first.');
+    }
+  });
+  
+  // Helper to create remove button
+  function getRemoveBtn() {
+    return `<button type="button" class="btn btn-sm btn-outline-glass d-flex align-items-center justify-content-center" style="width:42px; height:42px; border-color: rgba(239, 68, 68, 0.3); color: #ef4444 !important;" onclick="this.parentElement.remove()" title="Remove node">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>`;
+  }
 
-// Add Education Field
-function addEducation() {
-  const container = document.getElementById('educationContainer');
-  const div = document.createElement('div');
-  div.className = 'mb-2 d-flex gap-2';
-  div.innerHTML = `
-    <textarea class="form-control" name="education" rows="2" placeholder="Degree, University Name (Year)"></textarea>
-    <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">Remove</button>
-  `;
-  container.appendChild(div);
-}
+  function addExperience() {
+    const container = document.getElementById('experienceContainer');
+    const div = document.createElement('div');
+    div.className = 'd-flex gap-3 align-items-start';
+    div.innerHTML = `<textarea class="form-control flex-grow-1" name="experience" rows="3" placeholder="Organization, Role Title&#10;Tactical achievements"></textarea>${getRemoveBtn()}`;
+    container.appendChild(div);
+  }
 
-// Add Achievement Field
-function addAchievement() {
-  const container = document.getElementById('achievementsContainer');
-  const div = document.createElement('div');
-  div.className = 'mb-2 d-flex gap-2';
-  div.innerHTML = `
-    <textarea class="form-control" name="achievements" rows="2" placeholder="Award or achievement"></textarea>
-    <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">Remove</button>
-  `;
-  container.appendChild(div);
-}
+  function addEducation() {
+    const container = document.getElementById('educationContainer');
+    const div = document.createElement('div');
+    div.className = 'd-flex gap-3 align-items-start';
+    div.innerHTML = `<textarea class="form-control flex-grow-1" name="education" rows="2" placeholder="Degree Designation, Institution (Year)"></textarea>${getRemoveBtn()}`;
+    container.appendChild(div);
+  }
 
-// Add Skill Field
-function addSkill() {
-  const container = document.getElementById('skillsContainer');
-  const div = document.createElement('div');
-  div.className = 'mb-2 d-flex gap-2';
-  div.innerHTML = `
-    <input class="form-control" type="text" name="skills" placeholder="Skill name">
-    <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">Remove</button>
-  `;
-  container.appendChild(div);
-}
+  function addAchievement() {
+    const container = document.getElementById('achievementsContainer');
+    const div = document.createElement('div');
+    div.className = 'd-flex gap-2 align-items-start';
+    div.innerHTML = `<textarea class="form-control flex-grow-1" name="achievements" rows="2" placeholder="Award classification"></textarea>${getRemoveBtn()}`;
+    container.appendChild(div);
+  }
+
+  function addSkill() {
+    const container = document.getElementById('skillsContainer');
+    const div = document.createElement('div');
+    div.className = 'd-flex gap-2 align-items-start';
+    div.innerHTML = `<input class="form-control flex-grow-1" type="text" name="skills" placeholder="Skill vector">${getRemoveBtn()}`;
+    container.appendChild(div);
+  }
 </script>
+  <script>
+    // Client-side fetch to POST form and force download of returned PDF
+    document.getElementById('genDownloadBtn').addEventListener('click', async () => {
+      const form = document.querySelector('form[action="/builder"]');
+      console.log('Download template:', form.elements['template'].value);
+      const data = new FormData(form);
+      try {
+        const resp = await fetch('/builder', { method: 'POST', body: data });
+        if (!resp.ok) throw new Error('Server error: ' + resp.status);
+        const blob = await resp.blob();
+        // Get filename from Content-Disposition header
+        const cd = resp.headers.get('Content-Disposition') || '';
+        let filename = 'resume.pdf';
+        const m = /filename\*=UTF-8''(.+)$/.exec(cd) || /filename="?([^";]+)"?/.exec(cd);
+        if (m) filename = decodeURIComponent(m[1]);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Download failed', err);
+        alert('Automatic download failed. Try the normal Generate button or check server logs.');
+      }
+    });
+  </script>
 
 <script src="{{ url_for('static', filename='js/resume_chatbot.js') }}"></script>
-
 {% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}{{ name or 'Resume' }} - Creative{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="bg-white mx-auto" style="max-width:900px; box-shadow:0 15px 50px rgba(0,0,0,0.12); border-radius:12px; overflow:hidden;">
+    <!-- Accent Header -->
+    <div style="background:linear-gradient(90deg, #f59e0b 0%, #ec4899 100%); padding:40px; color:white; position:relative; overflow:hidden;">
+      <div style="position:absolute; top:-50px; right:-50px; width:200px; height:200px; background:rgba(255,255,255,0.1); border-radius:50%;"></div>
+      <div style="position:absolute; bottom:-30px; left:-80px; width:150px; height:150px; background:rgba(255,255,255,0.1); border-radius:50%;"></div>
+      <h1 style="font-size:36px; font-weight:800; margin:0; position:relative; z-index:1;">{{ name }}</h1>
+      <p style="font-size:14px; margin:12px 0 0 0; opacity:0.95; position:relative; z-index:1;">
+        {% if email %}📧 {{ email }}{% endif %}{% if email and phone %} • {% endif %}{% if phone %}📞 {{ phone }}{% endif %}
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:40px;">
+      {% if summary %}
+      <div style="margin-bottom:30px; padding:20px; background:#fef3c7; border-left:4px solid #f59e0b; border-radius:4px;">
+        <h3 style="margin:0 0 10px 0; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#d97706;">About</h3>
+        <p style="margin:0; font-size:14px; line-height:1.6; color:#333;">{{ summary }}</p>
+      </div>
+      {% endif %}
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px;">
+        <!-- Left Column -->
+        <div>
+          {% if experience_list %}
+          <section style="margin-bottom:25px;">
+            <h3 style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#f59e0b; margin-bottom:15px; padding-bottom:10px; border-bottom:2px solid #fecaca;">Experience</h3>
+            {% for item in experience_list %}
+              <div style="margin-bottom:12px; font-size:13px; line-height:1.6; color:#333;">{{ item|replace("\n","<br/>")|safe }}</div>
+            {% endfor %}
+          </section>
+          {% endif %}
+        </div>
+
+        <!-- Right Column -->
+        <div>
+          {% if skills_list %}
+          <section style="margin-bottom:25px; padding:15px; background:#f3e8ff; border-radius:6px;">
+            <h3 style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#a855f7; margin-bottom:12px;">Skills</h3>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              {% for skill in skills_list %}
+                <span style="background:#ec4899; color:white; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:500;">{{ skill }}</span>
+              {% endfor %}
+            </div>
+          </section>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if education_list %}
+      <section style="margin-bottom:25px;">
+        <h3 style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#f59e0b; margin-bottom:15px; padding-bottom:10px; border-bottom:2px solid #fecaca;">Education</h3>
+        {% for item in education_list %}
+          <div style="margin-bottom:10px; font-size:13px; line-height:1.6; color:#333;">{{ item }}</div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      {% if achievements_list %}
+      <section style="margin-bottom:25px;">
+        <h3 style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#f59e0b; margin-bottom:15px; padding-bottom:10px; border-bottom:2px solid #fecaca;">Achievements</h3>
+        <ul style="margin:0; padding-left:20px; font-size:13px; line-height:1.8; color:#333;">
+          {% for item in achievements_list %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+
+      {% if declaration %}
+      <div style="margin-top:25px; padding-top:15px; border-top:2px solid #e5e7eb; font-size:12px; color:#666; font-style:italic;">{{ declaration }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

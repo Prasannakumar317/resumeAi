@@ -3,73 +3,98 @@
 {% block title %}Welcome — Resume AI{% endblock %}
 
 {% block content %}
-<div class="container">
-<div class="glass glass-glow hero text-white py-5 px-4">
-    <div class="row align-items-center">
-        <div class="col-md-7">
-            <h1 class="display-5 fw-bold">Welcome to Resume AI</h1>
-            <p class="lead mt-3">Build professional resumes or analyze existing ones with AI-powered insights. Get actionable feedback to land your dream job.</p>
-            <div class="mt-5">
-                <a class="btn btn-light btn-lg me-3" href="/dashboard">Get Started →</a>
-                <a class="btn btn-outline-light btn-lg" href="/login">Sign In</a>
+<div class="container py-4">
+    <div class="hero-box text-center mb-5 fade-up">
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-4"
+                    style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);">
+                    <span class="badge rounded-pill bg-primary" style="font-size: 0.7rem;">NEW</span>
+                    <span class="small fw-semibold" style="color: #60a5fa;">The next generation of career development is
+                        here</span>
+                </div>
+
+                <h1 class="display-3 fw-bolder mb-4" style="letter-spacing: -0.04em;">
+                    Build your career with <br />
+                    <span class="text-gradient-pro">AI Intelligence</span>
+                </h1>
+
+                <p class="lead text-secondary mb-5 px-md-5 fs-5">
+                    Create mathematically perfect, ATS-optimized resumes in minutes. Analyze existing documents for deep
+                    keyword insights and role-fit scoring.
+                </p>
+
+                <div class="d-flex justify-content-center flex-column flex-sm-row gap-3">
+                    <a class="btn btn-glow-primary btn-lg px-5 py-3" href="/dashboard">Deploy Resume</a>
+                    <a class="btn btn-outline-glass btn-lg px-5 py-3 d-flex align-items-center gap-2" href="/analyzer">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 12h4l3-9 5 18 3-9h5"></path>
+                        </svg>
+                        Test Analyzer
+                    </a>
+                </div>
             </div>
         </div>
-        <div class="col-md-5 d-none d-md-block text-center">
-            <div class="card-ghost mx-auto" style="max-width:360px">
-                <h4 class="mb-4 text-gradient">Resume Preview</h4>
-                <div class="scene">
-                    <div class="card">
-                        <h1>JOHN DOE</h1>
-                        <h2>Full Stack Developer</h2>
-                        <div class="section">
-                            <strong>Experience</strong>
-                            <p>
-                                • Senior Developer at Tech Corp (2020–2024)<br>
-                                • Led development of 5+ major features<br>
-                                • Improved performance by 40%
-                            </p>
-                        </div>
-                        <div class="section">
-                            <strong>Skills</strong>
-                            <p>React • Node.js • AWS • TypeScript • PostgreSQL</p>
-                        </div>
-                    </div>
+    </div>
+
+    <!-- Power Features Section -->
+    <div class="row g-4 mt-2 mb-5">
+        <div class="col-md-4 fade-up delay-1">
+            <div class="glass-panel p-5 h-100 hover-lift text-center">
+                <div class="icon-box mx-auto" style="color: #3b82f6;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
                 </div>
+                <h4 class="fw-bold mb-3">Architect Engine</h4>
+                <p class="text-secondary small mb-0 lh-lg">Construct structurally flawless documents with guided schemas
+                    and mathematically exact typography.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 fade-up delay-2">
+            <div class="glass-panel p-5 h-100 hover-lift text-center">
+                <div class="icon-box mx-auto" style="color: #06b6d4;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        <line x1="11" y1="8" x2="11" y2="14"></line>
+                        <line x1="8" y1="11" x2="14" y2="11"></line>
+                    </svg>
+                </div>
+                <h4 class="fw-bold mb-3">Deep Analysis</h4>
+                <p class="text-secondary small mb-0 lh-lg">Reverse-engineer applicant tracking systems (ATS) with
+                    role-specific semantic analysis and scoring.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 fade-up delay-3">
+            <div class="glass-panel p-5 h-100 hover-lift text-center">
+                <div class="icon-box mx-auto" style="color: #8b5cf6;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <h4 class="fw-bold mb-3">Real-time Telemetry</h4>
+                <p class="text-secondary small mb-0 lh-lg">Instant feedback loops identify structural weaknesses and
+                    suggest high-impact action verbs.</p>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Features Section -->
-<div class="row g-4 mt-6 align-items-stretch">
-    <div class="col-md-4">
-        <div class="glass p-4 text-white h-100">
-            <div style="font-size: 2.5rem; margin-bottom: 1rem;">📝</div>
-            <h5 class="fw-bold">Smart Builder</h5>
-            <p class="muted small">Create professional resumes with guided inputs and instant formatting.</p>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="glass p-4 text-white h-100">
-            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔍</div>
-            <h5 class="fw-bold">AI Analyzer</h5>
-            <p class="muted small">Upload and get instant analysis with keyword matching and ATS optimization.</p>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="glass p-4 text-white h-100">
-            <div style="font-size: 2.5rem; margin-bottom: 1rem;">⚡</div>
-            <h5 class="fw-bold">Instant Feedback</h5>
-            <p class="muted small">Get personalized suggestions to improve your resume for each job role.</p>
-        </div>
-    </div>
-</div>
-</div>
-    
 <footer class="py-5 text-center mt-5">
     <div class="container">
-        <p class="muted small">© 2026 Resume AI. Powered by advanced AI technology.</p>
-        <p class="muted small mt-2">Build better resumes, land better jobs.</p>
+        <p class="text-secondary small mb-1 fw-medium tracking-wide">© 2026 RESUME AI SYSTEMS. ALL RIGHTS RESERVED.</p>
+        <p class="text-muted small" style="opacity: 0.5;">Engineered for peak career trajectory.</p>
     </div>
 </footer>
 

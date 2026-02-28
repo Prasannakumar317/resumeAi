@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}{{ name or 'Resume' }} - Minimal{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="bg-white mx-auto p-5" style="max-width:800px; font-family:system-ui,-apple-system,sans-serif;">
+    <!-- Header -->
+    <h1 style="font-size:28px; font-weight:300; margin:0 0 3px 0; letter-spacing:1px;">{{ name }}</h1>
+    {% if email or phone %}
+    <p style="font-size:12px; margin:0 0 25px 0; color:#888;">
+      {% if email %}{{ email }}{% endif %}{% if email and phone %} • {% endif %}{% if phone %}{{ phone }}{% endif %}
+    </p>
+    {% endif %}
+
+    <!-- Content Sections -->
+    {% if summary %}
+    <div style="margin-bottom:28px;">
+      <h2 style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 12px 0; color:#000;">Summary</h2>
+      <p style="font-size:13px; line-height:1.7; margin:0; color:#222;">{{ summary }}</p>
+    </div>
+    {% endif %}
+
+    {% if experience_list %}
+    <div style="margin-bottom:28px;">
+      <h2 style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 12px 0; color:#000;">Experience</h2>
+      {% for item in experience_list %}
+        <div style="margin-bottom:10px; font-size:13px; line-height:1.6; color:#333;">{{ item|replace("\n","<br/>")|safe }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if education_list %}
+    <div style="margin-bottom:28px;">
+      <h2 style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 12px 0; color:#000;">Education</h2>
+      {% for item in education_list %}
+        <div style="margin-bottom:8px; font-size:13px; line-height:1.6; color:#333;">{{ item }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if skills_list %}
+    <div style="margin-bottom:28px;">
+      <h2 style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 12px 0; color:#000;">Skills</h2>
+      <p style="font-size:13px; line-height:1.6; margin:0; color:#333;">{{ skills_list|join(' • ') }}</p>
+    </div>
+    {% endif %}
+
+    {% if achievements_list %}
+    <div style="margin-bottom:28px;">
+      <h2 style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 12px 0; color:#000;">Achievements</h2>
+      <ul style="margin:0; padding-left:18px; font-size:13px; line-height:1.7; color:#333; list-style-type:none;">
+        {% for item in achievements_list %}
+          <li style="margin-bottom:4px;"><span style="color:#999;">→</span> {{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if declaration %}
+    <div style="margin-top:28px; padding-top:15px; border-top:1px solid #ddd; font-size:11px; color:#888; font-style:italic;">{{ declaration }}</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

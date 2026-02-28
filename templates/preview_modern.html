@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{{ name or 'Resume' }} - Modern Professional{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="bg-white mx-auto" style="max-width:900px; display:grid; grid-template-columns:250px 1fr; box-shadow:0 10px 40px rgba(0,0,0,0.1); border-radius:8px; overflow:hidden;">
+    <!-- Sidebar -->
+    <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; padding:40px 30px;">
+      <h1 class="mb-4" style="font-size:28px; font-weight:700; word-break:break-word;">{{ name }}</h1>
+      {% if email or phone %}
+      <div style="font-size:13px; line-height:1.8; border-top:1px solid rgba(255,255,255,0.3); padding-top:20px;">
+        {% if email %}<div>📧 {{ email }}</div>{% endif %}
+        {% if phone %}<div>📞 {{ phone }}</div>{% endif %}
+      </div>
+      {% endif %}
+      {% if skills_list %}
+      <div style="margin-top:30px;">
+        <h4 style="font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Skills</h4>
+        <div style="font-size:12px; line-height:1.8;">
+          {% for skill in skills_list[:8] %}
+            <div style="background:rgba(255,255,255,0.2); padding:4px 8px; margin-bottom:6px; border-radius:4px; display:inline-block; margin-right:4px;">{{ skill }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <!-- Main Content -->
+    <div style="padding:40px;">
+      {% if summary %}
+      <section style="margin-bottom:25px;">
+        <h3 style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#667eea; margin-bottom:12px; border-bottom:2px solid #667eea; padding-bottom:8px;">Professional Summary</h3>
+        <p style="font-size:14px; line-height:1.7; color:#333; margin:0;">{{ summary }}</p>
+      </section>
+      {% endif %}
+      {% if experience_list %}
+      <section style="margin-bottom:25px;">
+        <h3 style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#667eea; margin-bottom:12px; border-bottom:2px solid #667eea; padding-bottom:8px;">Experience</h3>
+        {% for item in experience_list %}
+          <div style="margin-bottom:12px; font-size:14px; line-height:1.6; color:#333;">{{ item|replace("\n","<br/>")|safe }}</div>
+        {% endfor %}
+      </section>
+      {% endif %}
+      {% if education_list %}
+      <section style="margin-bottom:25px;">
+        <h3 style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#667eea; margin-bottom:12px; border-bottom:2px solid #667eea; padding-bottom:8px;">Education</h3>
+        {% for item in education_list %}
+          <div style="margin-bottom:10px; font-size:14px; line-height:1.6; color:#333;">{{ item }}</div>
+        {% endfor %}
+      </section>
+      {% endif %}
+      {% if achievements_list %}
+      <section style="margin-bottom:25px;">
+        <h3 style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#667eea; margin-bottom:12px; border-bottom:2px solid #667eea; padding-bottom:8px;">Achievements</h3>
+        <ul style="margin:0; padding-left:20px; font-size:14px; line-height:1.8; color:#333;">
+          {% for item in achievements_list %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+      {% if declaration %}
+      <section style="margin-top:30px; padding-top:20px; border-top:1px solid #ddd;">
+        <p style="font-size:12px; color:#666; font-style:italic; margin:0;">{{ declaration }}</p>
+      </section>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}{{ name or 'Resume Preview' }} - Professional{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="bg-white p-5 mx-auto" style="max-width:800px; box-shadow:var(--shadow-md); border-radius:12px;">
+    <h1 class="text-center mb-2" style="color:var(--brand-primary);">{{ name }}</h1>
+    <p class="text-center text-secondary mb-4">{{ email }}{% if phone %} • {{ phone }}{% endif %}</p>
+    {% if summary %}
+      <h3 class="text-primary">Summary</h3>
+      <p>{{ summary }}</p>
+    {% endif %}
+    {% if experience_list %}
+      <h3 class="text-primary mt-4">Experience</h3>
+      {% for item in experience_list %}
+        <p>{{ item|replace("\n","<br/>")|safe }}</p>
+      {% endfor %}
+    {% endif %}
+    {% if education_list %}
+      <h3 class="text-primary mt-4">Education</h3>
+      {% for item in education_list %}
+        <p>{{ item }}</p>
+      {% endfor %}
+    {% endif %}
+    {% if skills_list %}
+      <h3 class="text-primary mt-4">Skills</h3>
+      <p>{{ skills_list|join(', ') }}</p>
+    {% endif %}
+    {% if achievements_list %}
+      <h3 class="text-primary mt-4">Achievements</h3>
+      <ul>
+        {% for item in achievements_list %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if declaration %}
+      <h3 class="text-primary mt-4">Declaration</h3>
+      <p>{{ declaration }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

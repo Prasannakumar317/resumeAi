@@ -3,79 +3,137 @@
 {% block title %}Dashboard — Resume AI{% endblock %}
 
 {% block content %}
+<div class="container py-4">
 
-<div class="container">
-<div id="heroSection" class="glass glass-glow hero text-white mb-5">
-  <div class="row align-items-center">
-    <div class="col-12">
-      <h1 class="display-6 fw-bold mb-3">Welcome Back! 👋</h1>
-      <p class="lead">Choose a tool below to start building or analyzing your resume.</p>
-    </div>
-  </div>
-</div>
-
-<!-- Feature tiles: modern cards for main features -->
-<div class="row g-4 align-items-stretch">
-  <div id="tile-builder" class="col-md-6 d-flex">
-    <div class="glass p-5 text-white flex-fill feature-tile">
-      <div style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
-      <h4 class="fw-bold">Resume Builder</h4>
-      <p class="muted">Create a beautiful, professional resume in minutes with guided inputs and instant download.</p>
-      <div class="mt-auto">
-        <a class="btn btn-light mt-3" href="/builder">Open Builder →</a>
+  <!-- Dashboard Header -->
+  <div class="hero-box mb-5 fade-up p-5 rounded-4"
+    style="background: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(250,250,250,0.6) 100%); color: var(--text-primary);">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="icon-box m-0"
+            style="width: 48px; height: 48px; color: var(--brand-primary); border-radius: 12px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <h1 class="display-6 fw-bold mb-0">Dashboard</h1>
+        </div>
+        <p class="text-secondary fs-5 mb-0">Choose a tool below to build or analyze your resume.</p>
       </div>
     </div>
   </div>
-  <div id="tile-analyzer" class="col-md-6 d-flex">
-    <div class="glass p-5 text-white flex-fill feature-tile">
-      <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
-      <h4 class="fw-bold">Resume Analyzer</h4>
-      <p class="muted">Upload your resume and get instant keyword analysis, role-fit scoring, and improvement suggestions.</p>
-      <div class="mt-auto">
-        <a class="btn btn-light mt-3" href="/analyzer">Open Analyzer →</a>
+
+  <!-- Bento Grid: Tools -->
+  <div class="bento-grid mb-5">
+    <div class="fade-up delay-1">
+      <div class="glass-panel p-5 bento-card hover-lift">
+        <div class="d-flex align-items-center gap-4 mb-4">
+          <div class="icon-box m-0"
+            style="width: 64px; height: 64px; border-radius: 16px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: rgba(59, 130, 246, 0.3);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="fw-bold mb-1">Resume Builder</h3>
+            <span class="badge"
+              style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2);">Builder</span>
+          </div>
+        </div>
+        <p class="text-secondary flex-grow-1 mb-4 lh-lg">Generate mathematically structured PDFs from raw input
+          telemetry. Ensures maximum compatibility with standard ATS parsers.</p>
+        <div class="mt-auto">
+          <a class="btn btn-glow-primary w-100 py-3" href="/builder">Open Builder</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="fade-up delay-2">
+      <div class="glass-panel p-5 bento-card hover-lift">
+        <div class="d-flex align-items-center gap-4 mb-4">
+          <div class="icon-box m-0"
+            style="width: 64px; height: 64px; border-radius: 16px; background: rgba(6, 182, 212, 0.1); color: #06b6d4; border-color: rgba(6, 182, 212, 0.3);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <line x1="11" y1="8" x2="11" y2="14"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+          </div>
+          <div>
+            <h3 class="fw-bold mb-1">Resume Analyzer</h3>
+            <span class="badge"
+              style="background: rgba(6, 182, 212, 0.1); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.2);">Analyzer</span>
+          </div>
+        </div>
+        <p class="text-secondary flex-grow-1 mb-4 lh-lg">Upload existing architectures for deep semantic parsing.
+          Compares local keywords against targeted remote position vectors.</p>
+        <div class="mt-auto">
+          <a class="btn btn-outline-glass w-100 py-3 d-flex justify-content-center align-items-center gap-2"
+            href="/analyzer"
+            style="border-color: rgba(6, 182, 212, 0.3); color: #22d3ee !important; background: rgba(6, 182, 212, 0.05);">
+            Analyze
+          </a>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Stats Section -->
-<div class="row g-4 mt-5">
-  <div class="col-md-3 col-6">
-    <div class="glass p-4 text-center text-white">
-      <div style="font-size: 2.5rem; font-weight: 800; color: #667eea;">500+</div>
-      <p class="muted small mt-2">Resumes Created</p>
+  <!-- Global Telemetry -->
+  <h5 class="text-secondary fw-bold text-uppercase tracking-wider mb-3 fade-up delay-3"
+    style="letter-spacing: 0.1em; font-size: 0.85rem;">Global System Telemetry</h5>
+  <div class="row g-3 mb-5 fade-up delay-3">
+    <div class="col-md-3 col-6">
+      <div class="glass-panel p-4 h-100"
+        style="background: var(--bg-surface); border-color: var(--border-subtle);">
+        <div class="d-flex flex-column h-100">
+          <span class="stat-label">Generated Files</span>
+          <div class="stat-value mt-auto" style="color: #60a5fa;">500<span class="fs-4 text-muted">+</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="glass-panel p-4 h-100"
+        style="background: var(--bg-surface); border-color: var(--border-subtle);">
+        <div class="d-flex flex-column h-100">
+          <span class="stat-label">System Accuracy</span>
+          <div class="stat-value mt-auto" style="color: #34d399;">98<span class="fs-4 text-muted">%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="glass-panel p-4 h-100"
+        style="background: var(--bg-surface); border-color: var(--border-subtle);">
+        <div class="d-flex flex-column h-100">
+          <span class="stat-label">Vector Profiles</span>
+          <div class="stat-value mt-auto" style="color: #fbbf24;">15<span class="fs-4 text-muted">+</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="glass-panel p-4 h-100"
+        style="background: var(--bg-surface); border-color: var(--border-subtle);">
+        <div class="d-flex flex-column h-100">
+          <span class="stat-label">Network Status</span>
+          <div class="stat-value mt-auto d-flex align-items-center gap-2" style="font-size: 1.5rem;">
+            <div
+              style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; box-shadow: 0 0 10px #10b981;">
+            </div>
+            Online
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="col-md-3 col-6">
-    <div class="glass p-4 text-center text-white">
-      <div style="font-size: 2.5rem; font-weight: 800; color: #10b981;">98%</div>
-      <p class="muted small mt-2">Satisfaction Rate</p>
-    </div>
-  </div>
-  <div class="col-md-3 col-6">
-    <div class="glass p-4 text-center text-white">
-      <div style="font-size: 2.5rem; font-weight: 800; color: #f59e0b;">15+</div>
-      <p class="muted small mt-2">Job Roles</p>
-    </div>
-  </div>
-  <div class="col-md-3 col-6">
-    <div class="glass p-4 text-center text-white">
-      <div style="font-size: 2.5rem; font-weight: 800; color: #f093fb;">24/7</div>
-      <p class="muted small mt-2">Available</p>
-    </div>
-  </div>
-</div>
-</div>
 
-<script>
-// GSAP entrance animation for dashboard
-document.addEventListener('DOMContentLoaded', ()=>{
-  if(typeof gsap === 'undefined') return;
-  const tl = gsap.timeline({defaults:{duration:0.8,ease:'power3.out'}});
-  tl.from('#heroSection',{y:30,opacity:0});
-  tl.from('#tile-builder',{y:30,opacity:0},'-=0.4');
-  tl.from('#tile-analyzer',{y:30,opacity:0},'-=0.45');
-});
-</script>
-
+</div>
 {% endblock %}

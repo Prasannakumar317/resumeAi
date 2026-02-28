@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}{{ name or 'Resume Preview' }} - Simple{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="bg-white p-5 mx-auto" style="max-width:800px; font-family:Helvetica,Arial,sans-serif; color:#000;">
+    <h1 class="text-center mb-2">{{ name }}</h1>
+    <p class="text-center mb-4">{{ email }}{% if phone %} • {{ phone }}{% endif %}</p>
+    {% if summary %}
+      <h3 class="mb-2">Summary</h3>
+      <p>{{ summary }}</p>
+    {% endif %}
+    {% if experience_list %}
+      <h3 class="mb-2 mt-3">Experience</h3>
+      {% for item in experience_list %}
+        <p>{{ item|replace("\n","<br/>")|safe }}</p>
+      {% endfor %}
+    {% endif %}
+    {% if education_list %}
+      <h3 class="mb-2 mt-3">Education</h3>
+      {% for item in education_list %}
+        <p>{{ item }}</p>
+      {% endfor %}
+    {% endif %}
+    {% if skills_list %}
+      <h3 class="mb-2 mt-3">Skills</h3>
+      <p>{{ skills_list|join(', ') }}</p>
+    {% endif %}
+    {% if achievements_list %}
+      <h3 class="mb-2 mt-3">Achievements</h3>
+      <ul>
+        {% for item in achievements_list %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if declaration %}
+      <h3 class="mb-2 mt-3">Declaration</h3>
+      <p>{{ declaration }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

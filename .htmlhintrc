@@ -1,0 +1,8 @@
+{
+  "tagname-lowercase": true,
+  "attr-lowercase": true,
+  "attr-value-double-quotes": true,
+  "inline-style-disabled": false,
+  "style-disabled": false,
+  "inline-script-disabled": false
+}

@@ -1,65 +1,105 @@
 {% extends "base.html" %}
 
-{% block title %}Sign up — Resume AI{% endblock %}
+{% block title %}Sign up — Resume AI Systems{% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="row justify-content-center">
-    <div class="col-md-5">
-      <div class="glass p-5 text-white">
-        <div class="text-center mb-4">
-          <div style="font-size: 3rem;">🚀</div>
-          <h3 class="fw-bold mt-3">Get Started</h3>
-          <p class="muted">Create your free Resume AI account</p>
-        </div>
+<div class="container py-5 d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+  <div class="glass-panel p-5 fade-up" style="max-width: 500px; width: 100%;">
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, msg in messages %}
-              <div class="alert alert-{{ 'warning' if category=='error' else 'success' }} alert-dismissible fade show" role="alert">
-                {{ msg }}
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
+    <div class="text-center mb-5">
+      <div class="icon-box mx-auto mb-4"
+        style="width: 56px; height: 56px; color: #10b981; background: rgba(16, 185, 129, 0.1);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="8.5" cy="7" r="4"></circle>
+          <line x1="20" y1="8" x2="20" y2="14"></line>
+          <line x1="23" y1="11" x2="17" y2="11"></line>
+        </svg>
+      </div>
+      <h3 class="fw-bold mb-2">Create account</h3>
+      <p class="text-secondary small">Create your account to get started.</p>
+    </div>
 
-        <form method="post" action="/signup">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-          <div class="mb-3">
-            <label for="name" class="form-label">Full Name</label>
-            <input id="name" name="name" type="text" required class="form-control" maxlength="150">
-          </div>
-          <div class="mb-3">
-            <label for="email" class="form-label">Email Address</label>
-            <input id="email" name="email" type="email" required class="form-control" maxlength="150">
-          </div>
-          <div class="mb-3">
-            <label for="password" class="form-label">Password</label>
-            <input id="password" name="password" type="password" required class="form-control">
-            <small class="muted d-block mt-2">
-              Password must contain:
-              <ul class="mb-0 ps-3">
-                <li>At least 8 characters</li>
-                <li>Uppercase letters (A-Z)</li>
-                <li>Lowercase letters (a-z)</li>
-                <li>Numbers (0-9)</li>
-                <li>Special characters (!@#$%^&*)</li>
-              </ul>
-            </small>
-          </div>
-          <div class="mb-4">
-            <label for="confirm_password" class="form-label">Confirm Password</label>
-            <input id="confirm_password" name="confirm_password" type="password" required class="form-control">
-          </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, msg in messages %}
+    <div class="alert alert-{{ 'danger' if category=='error' else 'success' }} mb-4" role="alert">
+      <svg width="20" height="20" class="me-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      {{ msg }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
 
-          <button type="submit" class="btn btn-light w-100 fw-bold">Create Account</button>
-        </form>
+    <form method="post" action="/signup">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
-        <div class="mt-4 text-center">
-          <p class="muted">Already have an account? <a href="/login" class="text-gradient fw-bold">Sign in</a></p>
+      <div class="form-group mb-4">
+        <label for="name" class="form-label">Full Name</label>
+        <div class="position-relative">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <input id="name" name="name" type="text" required class="form-control ps-5 py-3" maxlength="150"
+            placeholder="Jane Doe">
         </div>
       </div>
+
+      <div class="form-group mb-4">
+        <label for="email" class="form-label">Email</label>
+        <div class="position-relative">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+          <input id="email" name="email" type="email" required class="form-control ps-5 py-3" maxlength="150"
+            placeholder="jane@domain.com">
+        </div>
+      </div>
+
+      <div class="row g-3 mb-5">
+        <div class="col-sm-6">
+          <div class="form-group mb-0">
+            <label for="password" class="form-label">Password</label>
+            <input id="password" name="password" type="password" required class="form-control py-3"
+              placeholder="••••••••">
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="form-group mb-0">
+            <label for="confirm_password" class="form-label">Confirm Password</label>
+            <input id="confirm_password" name="confirm_password" type="password" required class="form-control py-3"
+              placeholder="••••••••">
+          </div>
+        </div>
+
+        <div class="col-12 mt-2">
+          <p class="text-muted" style="font-size: 0.75rem; letter-spacing: 0.02em;">KEY REQUIREMENTS: ≥8 characters,
+            upper/lowercase, number, special (!@#$%^&*).</p>
+        </div>
+      </div>
+
+      <button type="submit"
+        class="btn btn-glow-primary w-100 py-3 d-flex justify-content-center align-items-center gap-2">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        Create account
+      </button>
+    </form>
+
+    <div class="mt-5 text-center">
+        <p class="text-secondary small">Already registered? <a href="/login"
+          style="color: #60a5fa; text-decoration: none; font-weight: 500;">Sign in</a></p>
     </div>
   </div>
 </div>
