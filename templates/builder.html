@@ -192,13 +192,6 @@
           <button id="genDownloadBtn" type="button" class="btn btn-glow-primary px-5 py-3">
             Generate & Download
           </button>
-          <button type="submit" class="btn btn-outline-primary px-5 py-3">
-            Generate Resume
-          <svg width="18" height="18" class="ms-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-          </button>
         </div>
       </div>
     </form>
@@ -264,31 +257,67 @@
   }
 </script>
   <script>
-    // Client-side fetch to POST form and force download of returned PDF
+    // Native browser printing for PDF generation
     document.getElementById('genDownloadBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('genDownloadBtn');
+      const originalText = btn.innerHTML;
+      
+      // Basic validation
       const form = document.querySelector('form[action="/builder"]');
-      console.log('Download template:', form.elements['template'].value);
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      btn.innerHTML = 'Preparing Print... <span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span>';
+      btn.disabled = true;
+
       const data = new FormData(form);
+      
       try {
-        const resp = await fetch('/builder', { method: 'POST', body: data });
+        // Fetch the preview HTML
+        const resp = await fetch('/preview', { method: 'POST', body: data });
         if (!resp.ok) throw new Error('Server error: ' + resp.status);
-        const blob = await resp.blob();
-        // Get filename from Content-Disposition header
-        const cd = resp.headers.get('Content-Disposition') || '';
-        let filename = 'resume.pdf';
-        const m = /filename\*=UTF-8''(.+)$/.exec(cd) || /filename="?([^";]+)"?/.exec(cd);
-        if (m) filename = decodeURIComponent(m[1]);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        let html = await resp.text();
+        
+        // Add a script block to automatically trigger print and close the window
+        const printScript = `
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500); // Wait half a second for fonts and styles to fully render
+            };
+          <\/script>
+        `;
+        
+        // Add print styling to strip away margins and backgrounds from the browser dialog
+        const printStyles = `
+          <style>
+            @media print {
+              @page { margin: 0; size: A4 portrait; }
+              body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; padding: 0;}
+            }
+          </style>
+        `;
+
+        html = html.replace('</head>', printStyles + '</head>');
+        html = html.replace('</body>', printScript + '</body>');
+        
+        // Open the document in a new tab and print it
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            throw new Error("Popup blocked! Please allow popups to generate the PDF.");
+        }
+        printWindow.document.write(html);
+        printWindow.document.close();
+        
       } catch (err) {
-        console.error('Download failed', err);
-        alert('Automatic download failed. Try the normal Generate button or check server logs.');
+        console.error('Print generation failed', err);
+        alert(err.message || 'Generation failed. Check the console for more details.');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
       }
     });
   </script>
