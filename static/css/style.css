@@ -129,31 +129,37 @@
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
 }
+
 .resume-preview h1 {
     margin-bottom: 0.5rem;
     font-size: 2rem;
 }
+
 .resume-preview .contact {
     font-size: 0.9rem;
     color: var(--text-secondary);
     margin-bottom: 1.5rem;
 }
+
 .resume-professional h2 {
     color: var(--brand-primary);
     border-bottom: 2px solid var(--brand-primary);
     padding-bottom: 0.25rem;
 }
+
 .resume-student h2 {
     color: var(--brand-secondary);
     border-bottom: 2px dashed var(--brand-secondary);
     padding-bottom: 0.25rem;
 }
+
 .resume-simple h2 {
     color: var(--text-primary);
     border-bottom: none;
     font-weight: normal;
 }
-    --danger-bg: rgba(239, 68, 68, 0.1);
+
+--danger-bg: rgba(239, 68, 68, 0.1);
 }
 
 * {
@@ -188,9 +194,9 @@ body {
     z-index: -1;
     background-color: var(--bg-base);
     background-image:
-        radial-gradient(600px 400px at 10% 30%, rgba(139,92,246,0.16), transparent 28%),
-        radial-gradient(500px 350px at 80% 20%, rgba(236,72,153,0.14), transparent 26%),
-        radial-gradient(700px 500px at 50% 85%, rgba(251,113,133,0.08), transparent 30%);
+        radial-gradient(600px 400px at 10% 30%, rgba(139, 92, 246, 0.16), transparent 28%),
+        radial-gradient(500px 350px at 80% 20%, rgba(236, 72, 153, 0.14), transparent 26%),
+        radial-gradient(700px 500px at 50% 85%, rgba(251, 113, 133, 0.08), transparent 30%);
     filter: blur(40px);
     animation: pulseBg 15s ease-in-out infinite alternate;
 }
@@ -236,16 +242,28 @@ p {
 }
 
 /* utility overrides for theme-aware bootstrap helpers */
-.theme-light .text-white { color: var(--text-primary) !important; }
-.theme-light .text-white-50 { color: var(--text-secondary) !important; }
-.theme-light .bg-transparent { background-color: transparent !important; }
-.theme-light .btn-glow-primary { box-shadow: 0 0 8px var(--brand-glow); }
+.theme-light .text-white {
+    color: var(--text-primary) !important;
+}
+
+.theme-light .text-white-50 {
+    color: var(--text-secondary) !important;
+}
+
+.theme-light .bg-transparent {
+    background-color: transparent !important;
+}
+
+.theme-light .btn-glow-primary {
+    box-shadow: 0 0 8px var(--brand-glow);
+}
 
 #themeSelector {
     background: var(--bg-surface);
     color: var(--text-primary);
     border: 1px solid var(--border-subtle);
 }
+
 #themeSelector option {
     background: var(--bg-base);
     color: var(--text-primary);
@@ -385,7 +403,7 @@ p {
 /* Subtle animated glow on focus for accessibility */
 .btn-glow-primary:focus {
     outline: none;
-    box-shadow: 0 6px 28px rgba(139, 92, 246, 0.28), 0 2px 6px rgba(236,72,153,0.08);
+    box-shadow: 0 6px 28px rgba(139, 92, 246, 0.28), 0 2px 6px rgba(236, 72, 153, 0.08);
 }
 
 .btn-glow-primary:hover::before {
@@ -426,14 +444,14 @@ p {
 .form-control,
 .form-select,
 textarea {
-    background-color: rgba(255,255,255,0.92);
-    border: 2px solid rgba(200,200,200,0.6);
+    background-color: rgba(255, 255, 255, 0.92);
+    border: 2px solid rgba(200, 200, 200, 0.6);
     color: #1f2937;
     border-radius: var(--radius-md);
     padding: 0.875rem 1rem;
     font-size: 1rem;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     font-weight: 500;
 }
 
@@ -455,9 +473,9 @@ textarea::placeholder {
 .form-control:focus,
 .form-select:focus,
 textarea:focus {
-    background-color: rgba(255,255,255,1);
+    background-color: rgba(255, 255, 255, 1);
     border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102,126,234,0.1), 0 4px 12px rgba(102,126,234,0.15);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 12px rgba(102, 126, 234, 0.15);
     color: #111827;
     outline: none;
 }
@@ -468,26 +486,57 @@ textarea::placeholder {
 }
 
 /* Floating-label style (animated) - opt-in via .floating-label on the container */
-.form-group.floating-label { position: relative; padding-top: 1.05rem; }
-.form-group.floating-label .form-label {
-    position: absolute; left: 16px; top: 12px; margin: 0; transition: transform .22s ease, font-size .22s ease, color .22s ease; transform-origin: left top; pointer-events: none; color: var(--text-secondary);
+.form-group.floating-label {
+    position: relative;
+    padding-top: 1.05rem;
 }
-.form-group.floating-label.filled .form-label, .form-group.floating-label:focus-within .form-label {
-    transform: translateY(-22px) scale(0.86); color: rgba(139,92,246,0.95);
+
+.form-group.floating-label .form-label {
+    position: absolute;
+    left: 16px;
+    top: 12px;
+    margin: 0;
+    transition: transform .22s ease, font-size .22s ease, color .22s ease;
+    transform-origin: left top;
+    pointer-events: none;
+    color: var(--text-secondary);
+}
+
+.form-group.floating-label.filled .form-label,
+.form-group.floating-label:focus-within .form-label {
+    transform: translateY(-22px) scale(0.86);
+    color: rgba(139, 92, 246, 0.95);
 }
 
 /* Small input icon spacing when inputs use absolute SVG icons */
-.position-relative svg { z-index: 2; }
-.form-control.ps-5 { padding-left: 48px !important; }
+.position-relative svg {
+    z-index: 2;
+}
+
+.form-control.ps-5 {
+    padding-left: 48px !important;
+}
 
 /* Neumorphic icon boxes */
-.icon-box { background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.7)); box-shadow: 8px 8px 18px rgba(0,0,0,0.06), -6px -6px 14px rgba(255,255,255,0.6); }
+.icon-box {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.7));
+    box-shadow: 8px 8px 18px rgba(0, 0, 0, 0.06), -6px -6px 14px rgba(255, 255, 255, 0.6);
+}
 
 /* Responsive tweaks */
 @media (max-width: 576px) {
-    .navbar { padding: .5rem 1rem !important; margin: 1rem !important; }
-    .hero-box { padding: 3rem 1.25rem; }
-    .glass-panel { padding: 1.25rem !important; }
+    .navbar {
+        padding: .5rem 1rem !important;
+        margin: 1rem !important;
+    }
+
+    .hero-box {
+        padding: 3rem 1.25rem;
+    }
+
+    .glass-panel {
+        padding: 1.25rem !important;
+    }
 }
 
 /* ============================================
@@ -604,4 +653,51 @@ footer {
     padding: 3rem 0;
     border-top: 1px solid var(--border-subtle);
     background: transparent;
+}
+
+/* ============================================
+   CIRCULAR SCORE GAUGE
+   ============================================ */
+.score-circle-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.score-circle {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.score-circle-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 8;
+}
+
+.score-circle-progress {
+    fill: none;
+    stroke: var(--success);
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.score-circle-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--success);
+    font-family: 'Outfit', sans-serif;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+}
+
+.score-value {
+    font-size: 2.2rem;
 }

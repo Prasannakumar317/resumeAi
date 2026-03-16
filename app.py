@@ -62,7 +62,7 @@ logging.basicConfig(level=logging.INFO)
 auth_logger = logging.getLogger('auth')
 
 # Lazy configure Gemini API (only when needed for chat)
-GEMINI_API_KEY = 'AIzaSyA2kTypsJMx4o1quNX2aQxWex4WnGs1mZk'
+GEMINI_API_KEY = 'AIzaSyD8jU1qowhNywKs8AzJ_J_ACkVpdU3MUaA'
 
 def init_genai():
 	"""Initialize Gemini API - called lazily to avoid slow startup"""
@@ -543,8 +543,27 @@ def signup():
 				db.session.commit()
 				print(f"[SIGNUP] User created successfully: {email}")
 				auth_logger.info(f"New account created: {email}")
-				flash('Account created successfully. Please log in.', 'success')
-				return redirect(url_for('login'))
+				
+				# Auto-login the user
+				session.permanent = True
+				session['user_id'] = user.id
+				session['user_name'] = user.name
+				session['user_email'] = user.email
+				
+				try:
+					login_history = LoginHistory(
+						user_id=user.id,
+						ip_address=get_client_ip(),
+						user_agent=request.headers.get('User-Agent', '')[:255],
+						success=True
+					)
+					db.session.add(login_history)
+					db.session.commit()
+				except Exception as he:
+					print(f"[SIGNUP] History log error: {he}")
+					
+				flash(f'Account created successfully! Welcome, {user.name}!', 'success')
+				return redirect(url_for('dashboard'))
 			except Exception as e:
 				db.session.rollback()
 				print(f"[SIGNUP ERROR] Failed to create user {email}: {e}")
@@ -828,39 +847,313 @@ def analyzer():
 				except Exception:
 					text = ''
 
-				# Role keyword matching
-				ROLE_KEYWORDS = {
-					'Data Scientist': ['python','machine learning','statistics','pandas','numpy','model','data','analysis','deep learning','regression'],
-					'Frontend Developer': ['javascript','react','css','html','frontend','typescript','vue','angular','ui','ux'],
-					'Backend Developer': ['python','java','node','api','django','flask','sql','database','backend','rest'],
-					'DevOps Engineer': ['docker','kubernetes','ci/cd','aws','terraform','ansible','monitoring','sre','jenkins'],
-					'Product Manager': ['roadmap','stakeholder','product','metrics','agile','scrum','user research','roadmap']
-				}
+				# Use Gemini for deep analysis
+				init_genai()
+				if genai and text:
+					prompt = f"""
+You are an expert ATS (Applicant Tracking System) and Senior Technical Recruiter.
+Analyze the following resume against the role of "{role}".
 
-				keywords = ROLE_KEYWORDS.get(role, ROLE_KEYWORDS['Data Scientist'])
-				text_l = (text or '').lower()
-				matched = [kw for kw in keywords if kw in text_l]
-				missing = [kw for kw in keywords if kw not in text_l]
-				score = int((len(matched) / max(1, len(keywords))) * 100)
+Return a strictly formatted JSON object with the exact following structure. Do NOT wrap the JSON in markdown code blocks, just return the raw JSON string:
+{{
+	"role_matching": "A 2-3 sentence summary of how well the candidate fits the {role} role.",
+	"keyword_analysis": {{
+		"matched": ["list", "of", "matched", "keywords"],
+		"missing": {{
+			"core_skills": ["list", "of", "missing", "must", "have", "core", "skills"],
+			"secondary_skills": ["list", "of", "missing", "nice", "to", "have", "skills"],
+			"tools_and_ecosystem": ["list", "of", "missing", "tools", "and", "frameworks"]
+		}}
+	}},
+	"experience_analysis": {{
+		"alignment": "Paragraph evaluating their experience alignment.",
+		"suggestions": ["List", "of", "actionable", "suggestions"]
+	}},
+	"project_review": ["If projects exist: suggest adding their tech stack, measurable outcomes, and GitHub links", "If NO projects exist: critically suggest 3-4 specific projects they should build"],
+	"education_review": "Observation about their education and certifications.",
+	"optimization": ["Formatting or phrasing suggestions to improve readability"],
+	"match_breakdown": {{
+		"skills_match": {{"score": 18, "maximum": 20}},
+		"experience_relevance": {{"score": 12, "maximum": 15}},
+		"projects_quality": {{"score": 4, "maximum": 5}},
+		"ats_compatibility": {{"score": 35, "maximum": 40}},
+		"keyword_optimization": {{"score": 8, "maximum": 10}},
+		"impact_and_metrics": {{"score": 7, "maximum": 10}}
+	}},
+	"score_explanation": "A one sentence explanation of why this score was given.",
+	"roadmap": {{
+		"title": "Personalized Roadmap to Become a {role}",
+		"steps": [
+			{{
+				"name": "Step 1: Core Fundamentals",
+				"duration": "2-3 Weeks",
+				"tasks": ["Task 1", "Task 2"]
+			}}
+		],
+		"estimated_readiness": "8-12 Weeks"
+	}},
+	"bullet_rewrites": [
+		{{
+			"original": "Worked on frontend",
+			"suggested": "Developed responsive UI components using React and Tailwind CSS, improving page load speed by 30%.",
+			"improvement_reason": "Needs measurable metrics and stronger action verbs."
+		}}
+	],
+	"ats_optimization": [
+		{{
+			"check_name": "Quantified Achievements",
+			"status": true,
+			"feedback": "Great use of percentages and numbers in experience bullets."
+		}},
+		{{
+			"check_name": "Missing Technical Summary",
+			"status": false,
+			"feedback": "Consider adding a professional summary at the top."
+		}}
+	]
+}}
 
-				if score >= 60:
-					suggestion = 'Resume looks suitable for this role. Consider adding more quantifiable achievements if possible.'
-				else:
-					suggestion = 'Tailor your resume to the role: add or emphasize skills: ' + ', '.join(missing[:6]) + '. Also highlight relevant projects and measurable outcomes.'
+Resume Text:
+{text}
+"""
+					try:
+						model = genai.GenerativeModel('gemini-2.0-flash')
+						response = model.generate_content(prompt)
+						json_str = response.text.replace('```json', '').replace('```', '').strip()
+						
+						import json
+						result = json.loads(json_str)
+						result['role'] = role
+						result['is_ai_analysis'] = True
+						
+						# Calculate total score from breakdown
+						total_score = 0
+						if 'match_breakdown' in result:
+							for key, value in result['match_breakdown'].items():
+								if isinstance(value, dict) and 'score' in value:
+									try:
+										total_score += int(value['score'])
+									except (ValueError, TypeError):
+										pass
+						
+						result['match_score'] = total_score
+					except Exception as e:
+						print(f"[ANALYZER ERROR] Gemini API failed: {e}")
+						result = None
+				
+				# Fallback if AI fails or triggers rate limits
+				if not result:
+					ROLE_KEYWORDS = {
+						'Data Scientist': ['python','machine learning','statistics','pandas','numpy','model','data','analysis','deep learning','regression'],
+						'Frontend Developer': ['javascript','react','css','html','frontend','typescript','vue','angular','ui','ux'],
+						'Backend Developer': ['python','java','node','api','django','flask','sql','database','backend','rest'],
+						'DevOps Engineer': ['docker','kubernetes','ci/cd','aws','terraform','ansible','monitoring','sre','jenkins'],
+						'Product Manager': ['roadmap','stakeholder','product','metrics','agile','scrum','user research','roadmap']
+					}
+					keywords = ROLE_KEYWORDS.get(role, ROLE_KEYWORDS['Data Scientist'])
+					text_l = (text or '').lower()
+					matched = [kw for kw in keywords if kw in text_l]
+					missing_flat = [kw for kw in keywords if kw not in text_l]
+					score = int((len(matched) / max(1, len(keywords))) * 100)
+					if score >= 60:
+						suggestion = 'Resume looks suitable for this role. Consider adding more quantifiable achievements if possible.'
+					else:
+						suggestion = 'Tailor your resume to the role: add or emphasize skills: ' + ', '.join(missing_flat[:6]) + '. Also highlight relevant projects and measurable outcomes.'
+					
+					# Split missing into three categories for fallback
+					third = max(1, len(missing_flat) // 3)
+					missing_categorized = {
+						"core_skills": missing_flat[:third],
+						"secondary_skills": missing_flat[third:third*2],
+						"tools_and_ecosystem": missing_flat[third*2:]
+					}
 
-				result = {
-					'role': role,
-					'score': score,
-					'matched': matched,
-					'missing': missing,
-					'suggestion': suggestion
-				}
+					# Construct a synthetic breakdown for fallback
+					base_ratio = len(matched) / max(1, len(keywords))
+					breakdown = {
+						"skills_match": {"score": int(base_ratio * 20), "maximum": 20},
+						"experience_relevance": {"score": int(base_ratio * 15), "maximum": 15},
+						"projects_quality": {"score": int(base_ratio * 5), "maximum": 5},
+						"ats_compatibility": {"score": int(base_ratio * 40), "maximum": 40},
+						"keyword_optimization": {"score": int(base_ratio * 10), "maximum": 10},
+						"impact_and_metrics": {"score": int(base_ratio * 10), "maximum": 10},
+					}
+					
+					# Recalculate exact total from the synthetic breakdown
+					score = sum(item['score'] for item in breakdown.values())
+					
+					# Construct a synthetic roadmap
+					dummy_roadmap = {
+						"title": f"Personalized Roadmap to Become a {role}",
+						"steps": [
+							{
+								"name": "Step 1: Enhance Missing Skills",
+								"duration": "1-2 Weeks",
+								"tasks": [f"Learn {kw}" for kw in missing_flat[:3]]
+							},
+							{
+								"name": "Step 2: Build Relevant Projects",
+								"duration": "3-4 Weeks",
+								"tasks": ["Implement a portfolio project", "Add measurable metrics to resume"]
+							}
+						],
+						"estimated_readiness": "4-6 Weeks"
+					}
+					
+					# Construct synthetic bullet rewrites
+					dummy_rewrites = [
+						{
+							"original": "Did some coding and built a feature.",
+							"suggested": "Architected and implemented a scalable feature that increased user engagement by 15%.",
+							"improvement_reason": "Used strong action verbs and quantifiable metrics."
+						}
+					]
+
+					# Construct synthetic ATS optimization checks
+					has_summary = 'summary' in text_l or 'profile' in text_l or 'objective' in text_l
+					has_github = 'github.com' in text_l
+					has_portfolio = has_github or 'portfolio' in text_l or '.com' in text_l
+					has_metrics = bool(re.search(r'\d+%|\$\d+|\d+x', text_l))
+					word_count = len(text.split())
+					good_length = 300 < word_count < 1000
+					length_feedback = "Resume is a good length." if good_length else ("Resume might be too short." if word_count <= 300 else "Resume might be too long. Consider trimming.")
+
+					ats_checks = [
+						{
+							"check_name": "Quantified Achievements",
+							"status": has_metrics,
+							"feedback": "Good use of metrics to drive impact." if has_metrics else "Missing quantifiable metrics (%, $, etc.) in bullet points."
+						},
+						{
+							"check_name": "Technical Summary",
+							"status": has_summary,
+							"feedback": "Professional summary detected." if has_summary else "Consider adding a short professional summary at the top."
+						},
+						{
+							"check_name": "Keyword Density",
+							"status": score > 50,
+							"feedback": f"Strong alignment with {role} keywords." if score > 50 else f"Poor keyword density. Specifically add: {', '.join(missing_flat[:3])}."
+						},
+						{
+							"check_name": "Appropriate Length",
+							"status": good_length,
+							"feedback": length_feedback
+						},
+						{
+							"check_name": "Portfolio/GitHub Links",
+							"status": has_portfolio,
+							"feedback": "Relevant links detected." if has_portfolio else "Missing a link to your GitHub or portfolio."
+						}
+					]
+					
+					# Construct Synthetic Project Mentoring
+					if 'project' in text_l or 'projects' in text_l:
+						dummy_projects = [
+							"Projects detected. Consider explicitly listing the tech stack used for each.",
+							"Add measurable outcomes (e.g., 'reduced load time by 15%') to your projects.",
+							"Ensure you include active GitHub repository links or live demo URLs."
+						]
+					else:
+						dummy_projects = [
+							"No projects detected on your resume. We recommend building the following:",
+							"1. Build a functional Todo App (React + Local Storage)",
+							"2. Develop a Weather App (API Integration)",
+							"3. Create an E-commerce UI Clone to show off styling skills"
+						]
+
+					result = {
+						'is_ai_analysis': False,
+						'role': role,
+						'score': score,
+						'matched': matched,
+						'missing': missing_categorized,
+						'suggestion': suggestion,
+						'match_breakdown': breakdown,
+						'roadmap': dummy_roadmap,
+						'bullet_rewrites': dummy_rewrites,
+						'ats_optimization': ats_checks,
+						'project_review': dummy_projects
+					}
 		else:
 			result = 'No file selected.'
 	return render_template('analyzer_v2.html', result=result)
 
 
+@app.route('/chat', methods=['POST'])
+@csrf.exempt
+def chat():
+	"""Handle chat messages with Google Gemini"""
+	try:
+		data = request.get_json() or {}
+		message = data.get('message', '').strip()
+		context = data.get('context', '')
+		resume_text = data.get('resume', '').strip()
+		
+		if not message:
+			return jsonify({"response": "I didn't receive a message."}), 400
+			
+		init_genai()
+		if not genai:
+			return jsonify({"response": "AI capabilities are currently unavailable (API not configured). Please check back later."}), 503
+			
+		# System prompt (allows answering ANY question)
+		sys_prompt = (
+			"You are Resume AI, a helpful AI assistant. "
+			"You can answer any question the user asks. "
+			"If the question is about resumes, careers, jobs, or skills, provide expert resume and career advice. "
+			"If resume context is provided, use it to give personalized suggestions. "
+			"Always respond clearly, helpfully, and concisely."
+		)
+
+		# Construct prompt
+		prompt_parts = []
+		prompt_parts.append(sys_prompt + "\n\n")
+
+		if resume_text:
+			prompt_parts.append(f"Context (User's Resume Data):\n{resume_text}\n\n")
+		
+		if context:
+			prompt_parts.append(f"User is currently on the '{context}' page.\n\n")
+			
+		prompt_parts.append(f"User: {message}\nAI:")
+
+		full_prompt = "".join(prompt_parts)
+
+		model = genai.GenerativeModel('gemini-1.5-pro')
+
+		try:
+			response = model.generate_content(full_prompt)
+
+			# Safely extract response text
+			text = ""
+			if response and hasattr(response, "text") and response.text:
+				text = response.text.strip()
+
+			if not text:
+				text = "I'm sorry, I couldn't generate a response. Please try asking again."
+
+			# Clean markdown formatting if present
+			text = text.replace('```json', '').replace('```', '').strip()
+
+			return jsonify({"response": text})
+
+		except Exception as api_err:
+			error_str = str(api_err).lower()
+
+			if '429' in error_str or 'quota' in error_str:
+				return jsonify({"response": "I'm currently receiving too many requests. Please try again in an hour."})
+			else:
+				raise api_err
+		
+	except Exception as e:
+		print(f"[CHAT ERROR] {e}")
+		return jsonify({
+			"error": str(e),
+			"response": "Sorry, I encountered an error while processing your request."
+		}), 500
+
 @app.route('/ai_resume', methods=['POST'])
+@csrf.exempt
 def ai_resume():
 	"""Simple on-device resume generator and feedback engine.
 	Expects JSON payload with: name, email, phone, summary, education,

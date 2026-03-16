@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resume Builder — Resume Builder</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+  <!-- Animated Gradient Background Mesh -->
+  <div class="bg-mesh">
+    <!-- decorative SVG blobs layered for depth -->
+    <svg class="bg-blobs" width="100%" height="100%" viewBox="0 0 1000 800" preserveAspectRatio="none" style="position:absolute; inset:0; pointer-events:none;">
+      <defs>
+        <linearGradient id="g1" x1="0" x2="1">
+          <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35" />
+          <stop offset="100%" stop-color="#fb7185" stop-opacity="0.25" />
+        </linearGradient>
+        <linearGradient id="g2" x1="0" x2="1">
+          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.25" />
+          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.18" />
+        </linearGradient>
+      </defs>
+      <g>
+        <ellipse cx="150" cy="200" rx="320" ry="200" fill="url(#g1)"></ellipse>
+        <ellipse cx="820" cy="120" rx="260" ry="160" fill="url(#g2)"></ellipse>
+        <ellipse cx="600" cy="620" rx="420" ry="260" fill="url(#g1)" opacity="0.12"></ellipse>
+      </g>
+    </svg>
+  </div>
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-transparent">
+    <div class="container-fluid px-3">
+      <a class="navbar-brand" href="/">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" class="text-primary" style="color: #3b82f6 !important;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <circle cx="12" cy="12" r="6"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
+        </svg>
+        Resume Builder
+      </a>
+      <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
+        data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <div class="ms-auto d-flex align-items-center gap-3 mt-3 mt-lg-0">
+          <!-- theme switcher -->
+          <select id="themeSelector" class="form-select form-select-sm" style="width:auto;">
+              <option value="colorful">Vibrant</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+          </select>
+          
+          <span class="text-secondary small fw-medium">Welcome, <strong class="text-primary">tester</strong></span>
+          <a class="btn btn-sm btn-outline-glass rounded-pill px-3" href="/logout">Sign out</a>
+          
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-5">
+    
+    
+    
+
+    
+<div class="container py-4">
+  <div class="glass-panel p-5 mx-auto fade-up" style="max-width: 1000px; border-top: 4px solid var(--brand-primary);">
+
+    <div class="row mb-5 pb-4 border-bottom border-strong align-items-center">
+      <div class="col-md-8">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="icon-box m-0"
+            style="width: 48px; height: 48px; color: #3b82f6; background: rgba(59, 130, 246, 0.1);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </div>
+          <h2 class="fw-bold m-0" style="font-size: 1.8rem;">Resume Builder</h2>
+        </div>
+        <p class="text-secondary mb-0 ms-5 ps-3">Enter your details below to generate a clean, ATS-friendly resume.</p>
+      </div>
+      <div class="col-md-4 text-md-end mt-4 mt-md-0">
+        <span class="badge px-3 py-2"
+          style="background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2);">System
+          Online</span>
+      </div>
+    </div>
+
+    
+    
+    
+    <div class="alert alert-danger mb-5 shadow-sm" role="alert"
+      style="border-left: 4px solid #f87171">
+      <div class="d-flex align-items-center w-100">
+        <div class="flex-grow-1">
+          <strong>Failed to generate PDF. Please check your input and try again.</strong>
+          
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    </div>
+    
+
+    <form method="POST" action="/builder" class="needs-validation">
+      <input type="hidden" name="csrf_token" value="ImMyMmJiMTVmZmI2YmIxMzgxZGIxODI5YWNhNDRlYjFiNmI2Mjg4NjMi.aaL0rw.xTAeq-EecwadRoonw64VNu2GQOw" />
+
+      <!-- Section 1: Personal -->
+      <h5 class="text-primary fw-bold mb-4 tracking-wider text-uppercase"
+        style="letter-spacing: 0.1em; font-size: 0.85rem;">01. Personal</h5>
+      <div class="row g-4 mb-5">
+        <div class="col-md-6 form-group floating-label mb-0">
+          <label class="form-label">Full Name <span class="text-danger">*</span></label>
+          <input class="form-control" type="text" name="name" placeholder="John Doe" required>
+        </div>
+        <div class="col-md-6 form-group floating-label mb-0">
+          <label class="form-label">Phone</label>
+          <input class="form-control" type="tel" name="phone" placeholder="+1 (555) 123-4567">
+        </div>
+        <div class="col-12 form-group floating-label mb-0">
+          <label class="form-label">Email</label>
+          <input class="form-control" type="email" name="email" placeholder="john@domain.com">
+        </div>
+        <div class="col-12 form-group floating-label mb-0">
+          <label class="form-label">Summary</label>
+          <textarea class="form-control" name="summary" rows="3" placeholder="Short summary or headline..."></textarea>
+        </div>
+        <div class="col-12 form-group mb-3">
+          <label class="form-label">Template Style</label>
+          <select id="templateSelect" name="template" class="form-select">
+            <option value="modern">Modern Professional (sidebar + gradient)</option>
+            <option value="executive">Executive (traditional corporate)</option>
+            <option value="creative">Creative (colorful + modern)</option>
+            <option value="academic">Academic (CV-style serif)</option>
+            <option value="minimal">Minimal (ultra-clean)</option>
+            <option value="professional">Professional (classic)</option>
+            <option value="student">Student (education-first)</option>
+            <option value="simple">Simple (monochrome)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Section 2: Experience -->
+      <h5 class="text-primary fw-bold mb-4 tracking-wider text-uppercase border-top border-strong pt-5"
+        style="letter-spacing: 0.1em; font-size: 0.85rem;">02. Experience</h5>
+
+      <div class="form-group mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <label class="form-label m-0 text-white fs-6">Experience</label>
+          <button type="button" class="btn btn-sm btn-outline-glass" onclick="addExperience()">
+            <svg width="14" height="14" class="me-1" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg> Add Node
+          </button>
+        </div>
+        <div id="experienceContainer" class="d-flex flex-column gap-3">
+          <div class="d-flex gap-3 align-items-start">
+            <textarea class="form-control flex-grow-1" name="experience" rows="3"
+              placeholder="Organization, Role Title (Duration)&#10;Tactical achievements and metrics administered"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Education -->
+      <h5 class="text-primary fw-bold mb-4 tracking-wider text-uppercase border-top border-strong pt-5"
+        style="letter-spacing: 0.1em; font-size: 0.85rem;">03. Education</h5>
+
+      <div class="form-group mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <label class="form-label m-0 text-white fs-6">Education</label>
+          <button type="button" class="btn btn-sm btn-outline-glass" onclick="addEducation()">
+            <svg width="14" height="14" class="me-1" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg> Add Node
+          </button>
+        </div>
+        <div id="educationContainer" class="d-flex flex-column gap-3">
+          <div class="d-flex gap-3 align-items-start">
+            <textarea class="form-control flex-grow-1" name="education" rows="2"
+              placeholder="Degree Designation, Institution (Certification Year)"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Extras -->
+      <h5 class="text-primary fw-bold mb-4 tracking-wider text-uppercase border-top border-strong pt-5"
+        style="letter-spacing: 0.1em; font-size: 0.85rem;">04. Extras</h5>
+
+      <div class="row g-5 mb-5">
+        <div class="col-md-6 form-group m-0">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <label class="form-label m-0 text-white fs-6">Achievements</label>
+            <button type="button" class="btn btn-sm btn-outline-glass px-2 py-1" onclick="addAchievement()">+</button>
+          </div>
+          <div id="achievementsContainer" class="d-flex flex-column gap-3">
+            <div class="d-flex gap-2 align-items-start">
+              <textarea class="form-control flex-grow-1" name="achievements" rows="2"
+                placeholder="Award or milestone classification"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 form-group m-0">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <label class="form-label m-0 text-white fs-6">Skills</label>
+            <button type="button" class="btn btn-sm btn-outline-glass px-2 py-1" onclick="addSkill()">+</button>
+          </div>
+          <div id="skillsContainer" class="d-flex flex-column gap-3">
+            <div class="d-flex gap-2 align-items-start">
+              <input class="form-control flex-grow-1" type="text" name="skills"
+                placeholder="Python, JavaScript, AWS (comma separated)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group mb-5">
+        <label class="form-label text-white fs-6">Agreement</label>
+        <textarea class="form-control" name="declaration" rows="2" placeholder="I confirm the information is accurate."></textarea>
+      </div>
+
+      <!-- Action Footer -->
+      <div
+        class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-4 mt-5 pt-4 border-top border-strong">
+        <a class="text-muted text-decoration-none small hover-text-primary" href="/dashboard">
+          <svg width="14" height="14" class="me-1" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          Back to Dashboard
+        </a>
+        <div class="d-flex gap-2">
+          <button id="previewBtn" type="button" class="btn btn-outline-glass px-4 py-3">Preview</button>
+          <button id="genDownloadBtn" type="submit" class="btn btn-glow-primary px-5 py-3">
+            Generate & Download
+          </button>
+        </div>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<script>
+  // Preview builder output by POSTing to the server and opening the returned HTML
+  document.getElementById('previewBtn').addEventListener('click', async () => {
+    const form = document.querySelector('form[action="/builder"]');
+    console.log('Preview template:', form.elements['template'].value);
+    const data = new FormData(form);
+    try {
+      const resp = await fetch('/preview', { method: 'POST', body: data });
+      const html = await resp.text();
+      const w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
+    } catch (err) {
+      console.error('Preview failed', err);
+      alert('Could not load preview. Please try generating the resume first.');
+    }
+  });
+  
+  // Helper to create remove button
+  function getRemoveBtn() {
+    return `<button type="button" class="btn btn-sm btn-outline-glass d-flex align-items-center justify-content-center" style="width:42px; height:42px; border-color: rgba(239, 68, 68, 0.3); color: #ef4444 !important;" onclick="this.parentElement.remove()" title="Remove node">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>`;
+  }
+
+  function addExperience() {
+    const container = document.getElementById('experienceContainer');
+    const div = document.createElement('div');
+    div.className = 'd-flex gap-3 align-items-start';
+    div.innerHTML = `<textarea class="form-control flex-grow-1" name="experience" rows="3" placeholder="Organization, Role Title&#10;Tactical achievements"></textarea>${getRemoveBtn()}`;
+    container.appendChild(div);
+  }
+
+  function addEducation() {
+    const container = document.getElementById('educationContainer');
+    const div = document.createElement('div');
+    div.className = 'd-flex gap-3 align-items-start';
+    div.innerHTML = `<textarea class="form-control flex-grow-1" name="education" rows="2" placeholder="Degree Designation, Institution (Year)"></textarea>${getRemoveBtn()}`;
+    container.appendChild(div);
+  }
+
+  function addAchievement() {
+    const container = document.getElementById('achievementsContainer');
+    const div = document.createElement('div');
+    div.className = 'd-flex gap-2 align-items-start';
+    div.innerHTML = `<textarea class="form-control flex-grow-1" name="achievements" rows="2" placeholder="Award classification"></textarea>${getRemoveBtn()}`;
+    container.appendChild(div);
+  }
+
+  function addSkill() {
+    const container = document.getElementById('skillsContainer');
+    const div = document.createElement('div');
+    div.className = 'd-flex gap-2 align-items-start';
+    div.innerHTML = `<input class="form-control flex-grow-1" type="text" name="skills" placeholder="Skill vector">${getRemoveBtn()}`;
+    container.appendChild(div);
+  }
+</script>
+  <script>
+    // Native form submission is used for downloading the PDF.
+    document.querySelector('form[action="/builder"]').addEventListener('submit', (e) => {
+        const btn = document.getElementById('genDownloadBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Downloading... <span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span>';
+        
+        // Re-enable button after a few seconds so user can click again if needed
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+        }, 3000);
+    });
+  </script>
+
+<script src="/static/js/resume_chatbot.js"></script>
+
+    </div>
+  </main>
+  <!-- Footer is placed on selected pages (welcome) to avoid duplication -->
+
+  <div id="loadingScreen">
+    <div class="text-white text-center">
+      <div class="spinner-border mb-3"></div>
+      <p>Analyzing your resume…</p>
+    </div>
+  </div>
+
+  <!-- Full-page waterflow transition overlay used for smooth page flows -->
+  <div id="flowOverlay" class="flow-overlay" aria-hidden="true">
+    <div class="water"></div>
+  </div>
+
+  <!-- Chat popup (AI Resume Engine) -->
+  <div id="resumeChat" class="resume-chat" aria-hidden="true">
+    <button id="chatToggle" class="chat-toggle" aria-label="Open chat">💬</button>
+    <div id="chatWindow" class="chat-window" role="dialog" aria-modal="false" style="display:none">
+      <div class="chat-header">
+        <strong>Resume Assistant</strong>
+        <button id="chatClose" class="chat-close">✕</button>
+      </div>
+      <div class="chat-body">
+        <div id="chatMessages" class="chat-messages"></div>
+        <form id="resumeForm" class="resume-form">
+          <input name="name" placeholder="Full name" />
+          <input name="email" placeholder="Email" />
+          <input name="phone" placeholder="Phone (optional)" />
+          <textarea name="summary" placeholder="Short summary / headline"></textarea>
+          <textarea name="experience" placeholder="Experience (one line per item)"></textarea>
+          <textarea name="skills" placeholder="Skills (comma separated)"></textarea>
+          <textarea name="job_description" placeholder="Paste job description here"></textarea>
+          <div class="d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary">Generate Resume</button>
+            <button type="button" id="clearChat" class="btn btn-outline-light">Clear</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script>
+    function showLoader() { document.getElementById('loadingScreen').style.display = 'flex'; }
+
+    // GSAP-based flow navigation: animate overlay then navigate
+    function flowNavigate(url, duration = 900) {
+      const overlay = document.getElementById('flowOverlay');
+      const water = overlay && overlay.querySelector('.water');
+      if (!overlay || !water) return window.location = url;
+      overlay.style.display = 'block';
+      overlay.classList.add('play');
+      gsap.set(water, { y: '-110%' });
+      gsap.to(water, { y: '0%', duration: duration / 1000, ease: 'power3.out', onComplete: () => { window.location.href = url; } });
+    }
+
+    // Attach to links with `.flow-link` to intercept and animate
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('a.flow-link').forEach(a => {
+        a.addEventListener('click', e => {
+          if (a.target === '_blank') return;
+          e.preventDefault();
+          flowNavigate(a.href, 900);
+        });
+      });
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Floating-label helper: toggles .filled on .form-group when inputs have content or focus -->
+  <script>
+    (function(){
+      function scanInputs(){
+        document.querySelectorAll('.form-group.floating-label').forEach(group => {
+          const input = group.querySelector('.form-control, textarea, .form-select');
+          if(!input) return;
+          const check = () => {
+            const val = (input.value || '').trim();
+            if(val) group.classList.add('filled'); else group.classList.remove('filled');
+          };
+          input.addEventListener('input', check);
+          input.addEventListener('change', check);
+          input.addEventListener('focus', () => group.classList.add('filled'));
+          input.addEventListener('blur', check);
+          // initial state
+          check();
+        });
+      }
+      document.addEventListener('DOMContentLoaded', scanInputs);
+    })();
+  </script>
+  <!-- theme toggle logic -->
+  <script>
+    (function(){
+      const selector = document.getElementById('themeSelector');
+      function applyTheme(theme) {
+        document.documentElement.classList.remove('theme-light','theme-colorful','theme-dark');
+        if (theme === 'light') document.documentElement.classList.add('theme-light');
+        if (theme === 'colorful') document.documentElement.classList.add('theme-colorful');
+        if (theme === 'dark') document.documentElement.classList.add('theme-dark');
+        localStorage.setItem('theme', theme);
+        if(selector) selector.value = theme;
+      }
+      document.addEventListener('DOMContentLoaded', () => {
+        const saved = localStorage.getItem('theme') || 'colorful';
+        applyTheme(saved);
+        if (selector) {
+          selector.addEventListener('change', () => applyTheme(selector.value));
+        }
+      });
+    })();
+  </script>
+  <script>
+    // Chat popup behaviour and AJAX submit to /ai_resume
+    (function () {
+      const toggle = document.getElementById('chatToggle');
+      const win = document.getElementById('chatWindow');
+      const close = document.getElementById('chatClose');
+      const form = document.getElementById('resumeForm');
+      const msgs = document.getElementById('chatMessages');
+      const clearBtn = document.getElementById('clearChat');
+
+      function openChat() { win.style.display = 'block'; toggle.style.display = 'none'; }
+      function closeChat() { win.style.display = 'none'; toggle.style.display = 'inline-block'; }
+
+      toggle.addEventListener('click', openChat);
+      close.addEventListener('click', closeChat);
+      clearBtn.addEventListener('click', () => { form.reset(); msgs.innerHTML = ''; });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(form).entries());
+        msgs.innerHTML = '<div class="muted">Generating resume…</div>';
+        try {
+          const res = await fetch('/ai_resume', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+          });
+          const json = await res.json();
+          const out = `<div class=\"resume-result\">${json.resume_html}</div>`;
+          const fb = json.feedback;
+          const feedbackHtml = `<div class=\"mt-3\"><h4>Recruiter Feedback (score: ${fb.score}%)</h4><p>${fb.summary}</p><p><strong>Tips:</strong></p><ul>${fb.tips.map(t => '<li>' + t + '</li>').join('')}</ul></div>`;
+          msgs.innerHTML = out + feedbackHtml + `<div class=\"mt-2\"><a class=\"btn btn-light\" href=\"#\" id=\"openResumeFull\">Open full resume</a></div>`;
+
+          document.getElementById('openResumeFull').addEventListener('click', (ev) => {
+            ev.preventDefault();
+            const w = window.open('', '_blank');
+            w.document.write('<html><head><title>Generated Resume</title><link rel="stylesheet" href="' + location.origin + '/static/css/style.css' + '"></head><body style="padding:24px">' + json.resume_html + '</body></html>');
+          });
+
+        } catch (err) { msgs.innerHTML = '<div class="text-danger">Failed to generate. Try again.</div>'; }
+      });
+    })();
+  </script>
+</body>
+
+</html>

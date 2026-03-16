@@ -13,22 +13,233 @@
     </div>
 
     {% if result and result is mapping %}
-      <div class="glass p-4 text-white mb-4 fade-in">
-        <div class="row align-items-center mb-3">
+      <div class="glass p-4 text-white mb-5 fade-in">
+        <div class="row align-items-center mb-4 border-bottom border-light pb-4">
           <div class="col-md-8">
-            <h4 class="fw-bold mb-0">Analysis Results</h4>
-            <p class="muted small mb-0">Target Role: <strong style="color: #667eea;">{{ result.role }}</strong></p>
+            <h3 class="fw-bold mb-1">Analysis Results</h3>
+            <p class="muted fs-5 mb-0">Target Role: <strong style="color: #667eea;">{{ result.role }}</strong></p>
+            {% if result.is_ai_analysis %}
+              <p class="mt-3">{{ result.role_matching }}</p>
+            {% else %}
+              <p class="mt-3">{{ result.suggestion }}</p>
+            {% endif %}
           </div>
-          <div class="col-md-4 text-md-end">
-            <div style="font-size: 2.5rem; font-weight: 800; color: #10b981;">{{ result.score }}%</div>
-            <p class="muted small">Match Score</p>
+          <div class="col-md-4 text-center">
+            <div class="score-circle-container mx-auto">
+              <svg class="score-circle" viewBox="0 0 100 100">
+                <circle class="score-circle-bg" cx="50" cy="50" r="40" />
+                <circle class="score-circle-progress" cx="50" cy="50" r="40" data-score="{{ result.match_score if result.is_ai_analysis else result.score }}" />
+              </svg>
+              <div class="score-circle-text">
+                <span class="score-value">0</span>%
+              </div>
+            </div>
+            <p class="fw-bold mt-2 mb-0 text-uppercase tracking-wider">Match Score</p>
+            {% if result.is_ai_analysis %}
+              <p class="small text-white-50 mt-1">{{ result.score_explanation }}</p>
+            {% endif %}
           </div>
         </div>
 
-        <div class="progress mb-4">
-          <div class="progress-bar" role="progressbar" style="width: {{ result.score|default(0) }}%;"></div>
+        <!-- Score Breakdown Section -->
+        {% if result.match_breakdown %}
+        <div class="p-4 rounded mb-4" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+          <h5 class="fw-bold mb-4"><i class="bi bi-bar-chart-fill"></i> Score Breakdown</h5>
+          <div class="row g-4">
+            {% for category, data in result.match_breakdown.items() %}
+              <div class="col-md-4 col-sm-6">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="small fw-semibold text-white-75 text-capitalize">{{ category | replace('_', ' ') }}</span>
+                  <span class="small text-white fw-bold">{{ data.score }}/{{ data.maximum }}</span>
+                </div>
+                <div class="progress" style="height: 8px; background-color: rgba(255,255,255,0.1);">
+                  {% set percentage = (data.score / data.maximum * 100) %}
+                  <div class="progress-bar {% if percentage >= 80 %}bg-success{% elif percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                       role="progressbar" 
+                       style="width: 0%; transition: width 1.5s ease-in-out;" 
+                       data-target-width="{{ percentage }}%"
+                       aria-valuenow="{{ data.score }}" 
+                       aria-valuemin="0" 
+                       aria-valuemax="{{ data.maximum }}"></div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if result.is_ai_analysis %}
+        <!-- Advanced AI Analysis Layout -->
+        <div class="row g-4 mb-4">
+          <!-- Keyword Analysis -->
+          <div class="col-md-6">
+            <div class="p-4 rounded h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+              <h5 class="fw-bold mb-3 text-info"><i class="bi bi-key"></i> Keyword Analysis</h5>
+              <p class="fw-semibold text-success mb-2">✓ Matched Skills</p>
+              <div class="mb-3">
+                {% for kw in result.keyword_analysis.matched %}
+                  <span class="tag">{{ kw }}</span>
+                {% endfor %}
+              </div>
+              <div class="mt-4">
+                <h6 class="fw-bold text-danger mb-2">🚨 Missing Core Skills (Must Have)</h6>
+                <div class="mb-3">
+                  {% for kw in result.keyword_analysis.missing.core_skills %}
+                    <span class="tag" style="background: rgba(220,53,69,0.1); color: #dc3545; border: 1px solid rgba(220,53,69,0.2);">{{ kw }}</span>
+                  {% else %}
+                    <span class="small text-white-50">None missing!</span>
+                  {% endfor %}
+                </div>
+                
+                <h6 class="fw-bold text-warning mb-2">⚠️ Secondary Skills (Nice to Have)</h6>
+                <div class="mb-3">
+                  {% for kw in result.keyword_analysis.missing.secondary_skills %}
+                    <span class="tag" style="background: rgba(255,193,7,0.1); color: #ffc107; border: 1px solid rgba(255,193,7,0.2);">{{ kw }}</span>
+                  {% else %}
+                    <span class="small text-white-50">None missing!</span>
+                  {% endfor %}
+                </div>
+
+                <h6 class="fw-bold text-info mb-2">🛠️ Tools & Ecosystem</h6>
+                <div>
+                  {% for kw in result.keyword_analysis.missing.tools_and_ecosystem %}
+                    <span class="tag" style="background: rgba(13,202,240,0.1); color: #0dcaf0; border: 1px solid rgba(13,202,240,0.2);">{{ kw }}</span>
+                  {% else %}
+                    <span class="small text-white-50">None missing!</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Experience & Alignment -->
+          <div class="col-md-6">
+            <div class="p-4 rounded h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+              <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-briefcase"></i> Experience Alignment</h5>
+              <p class="small text-white-75 mb-3">{{ result.experience_analysis.alignment }}</p>
+              <h6 class="fw-bold mb-2">Suggestions to Improve:</h6>
+              <ul class="small text-white-75 ps-3 mb-0">
+                {% for sug in result.experience_analysis.suggestions %}
+                  <li class="mb-1">{{ sug }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
         </div>
 
+        <div class="row g-4 mb-4">
+          <!-- Project & Education Review -->
+          <div class="col-md-6">
+            <div class="p-4 rounded h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+              <h5 class="fw-bold mb-3 text-purple" style="color:#b794f4;"><i class="bi bi-folder-check"></i> Project & Education Review</h5>
+              <div class="mb-3">
+                <h6 class="fw-bold text-white-75 mb-2">Projects & Achievements</h6>
+                <ul class="small text-white-75 ps-3 mb-0">
+                  {% for pr in result.project_review %}
+                    <li class="mb-1">{{ pr }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <h6 class="fw-bold text-white-75 mb-2">Education & Certifications</h6>
+                <p class="small text-white-75 mb-0">{{ result.education_review }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Weak Bullet Rewrites -->
+          <div class="col-md-6">
+            <div class="p-4 rounded h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+              <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-pencil-square"></i> Resume Rewrites</h5>
+              <p class="small text-white-75 mb-3">Suggested improvements for weak bullet points based on metrics and action verbs.</p>
+              {% if result.bullet_rewrites and result.bullet_rewrites|length > 0 %}
+                <div class="d-flex flex-column gap-3">
+                  {% for rewrite in result.bullet_rewrites %}
+                    <div class="p-3 rounded" style="background: rgba(0,0,0,0.2); border-left: 3px solid #ffc107;">
+                      <p class="small text-white-50 mb-1 text-decoration-line-through">{{ rewrite.original }}</p>
+                      <p class="small text-white fw-semibold mb-2">✨ {{ rewrite.suggested }}</p>
+                      <span class="badge bg-dark border border-secondary text-white-50" style="font-size: 0.7rem;"><i class="bi bi-info-circle"></i> {{ rewrite.improvement_reason }}</span>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="small text-white-50 mb-0">Your bullet points are looking strong!</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+          <!-- ATS Optimization Checks -->
+          <div class="col-md-12">
+            <div class="p-4 rounded h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+              <h5 class="fw-bold mb-3 text-info"><i class="bi bi-shield-check"></i> ATS Optimization Check</h5>
+              <div class="row g-3">
+                {% for check in result.ats_optimization %}
+                  <div class="col-md-6">
+                    <div class="d-flex align-items-start p-3 rounded" style="background: rgba(0,0,0,0.2);">
+                      <div class="me-3 fs-4">
+                        {% if check.status %}
+                          <span class="text-success">✅</span>
+                        {% else %}
+                          <span class="text-danger">❌</span>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <h6 class="fw-bold text-white mb-1">{{ check.check_name }}</h6>
+                        <p class="small text-white-75 mb-0">{{ check.feedback }}</p>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+          <!-- Formatting Optimizations -->
+          <div class="col-md-12">
+            <div class="p-4 rounded h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+              <h5 class="fw-bold mb-3 text-success"><i class="bi bi-magic"></i> Formatting Optimization</h5>
+              <ul class="small text-white-75 ps-3 mb-0">
+                {% for opt in result.optimization %}
+                  <li class="mb-2">{{ opt }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enhanced Roadmap Timeline -->
+        {% if result.roadmap and result.roadmap.steps %}
+        <div class="p-4 rounded mb-4" style="background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,7ba,226,0.1)); border: 1px solid rgba(255,255,255,0.1);">
+          <div class="d-flex align-items-center mb-4">
+            <h5 class="fw-bold mb-0"><i class="bi bi-signpost-split"></i> {{ result.roadmap.title }}</h5>
+            <span class="ms-auto badge bg-primary">⏱️ {{ result.roadmap.estimated_readiness }}</span>
+          </div>
+          
+          <div class="roadmap-timeline position-relative ps-4" style="border-left: 2px solid rgba(255,255,255,0.2);">
+            {% for step in result.roadmap.steps %}
+              <div class="roadmap-step mb-4 position-relative">
+                <div class="step-dot position-absolute" style="width: 12px; height: 12px; background: #667eea; border-radius: 50%; left: -1.75rem; top: 0.4rem;"></div>
+                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                  <h6 class="fw-bold text-white mb-0">{{ step.name }}</h6>
+                  <span class="small text-white-50"><i class="bi bi-clock"></i> {{ step.duration }}</span>
+                </div>
+                <ul class="small text-white-75 mb-0 ps-3">
+                  {% for task in step.tasks %}
+                    <li>{{ task }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Basic Analysis Fallback -->
         {% if result.matched %}
           <p class="fw-bold mb-2">✓ Matched Keywords:</p>
           <div>
@@ -39,17 +250,152 @@
         {% endif %}
 
         {% if result.missing %}
-          <p class="fw-bold mb-2 mt-3">⚠️ Missing Keywords:</p>
-          <div>
-            {% for kw in result.missing %}
-              <span class="tag" style="opacity: 0.7;">{{ kw }}</span>
-            {% endfor %}
+          <div class="mt-4">
+            <h6 class="fw-bold text-danger mb-2">🚨 Missing Core Skills (Must Have)</h6>
+            <div class="mb-3">
+              {% for kw in result.missing.core_skills %}
+                <span class="tag" style="background: rgba(220,53,69,0.1); color: #dc3545; border: 1px solid rgba(220,53,69,0.2);">{{ kw }}</span>
+              {% else %}
+                <span class="small text-white-50">None missing!</span>
+              {% endfor %}
+            </div>
+
+            <h6 class="fw-bold text-warning mb-2">⚠️ Secondary Skills (Nice to Have)</h6>
+            <div class="mb-3">
+              {% for kw in result.missing.secondary_skills %}
+                <span class="tag" style="background: rgba(255,193,7,0.1); color: #ffc107; border: 1px solid rgba(255,193,7,0.2);">{{ kw }}</span>
+              {% else %}
+                <span class="small text-white-50">None missing!</span>
+              {% endfor %}
+            </div>
+
+            <h6 class="fw-bold text-info mb-2">🛠️ Tools & Ecosystem</h6>
+            <div>
+              {% for kw in result.missing.tools_and_ecosystem %}
+                <span class="tag" style="background: rgba(13,202,240,0.1); color: #0dcaf0; border: 1px solid rgba(13,202,240,0.2);">{{ kw }}</span>
+              {% else %}
+                <span class="small text-white-50">None missing!</span>
+              {% endfor %}
+            </div>
           </div>
         {% endif %}
-
-        <div class="alert alert-info mt-3 mb-0">
-          <strong>💡 Recommendation:</strong> {{ result.suggestion }}
+        
+        <!-- Enhanced Roadmap Timeline (Fallback) -->
+        {% if result.roadmap and result.roadmap.steps %}
+        <div class="p-4 rounded mb-4" style="background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,7ba,226,0.1)); border: 1px solid rgba(255,255,255,0.1);">
+          <div class="d-flex align-items-center mb-4">
+            <h5 class="fw-bold mb-0"><i class="bi bi-signpost-split"></i> {{ result.roadmap.title }}</h5>
+            <span class="ms-auto badge bg-primary">⏱️ {{ result.roadmap.estimated_readiness }}</span>
+          </div>
+          
+          <div class="roadmap-timeline position-relative ps-4" style="border-left: 2px solid rgba(255,255,255,0.2);">
+            {% for step in result.roadmap.steps %}
+              <div class="roadmap-step mb-4 position-relative">
+                <div class="step-dot position-absolute" style="width: 12px; height: 12px; background: #667eea; border-radius: 50%; left: -1.75rem; top: 0.4rem;"></div>
+                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                  <h6 class="fw-bold text-white mb-0">{{ step.name }}</h6>
+                  <span class="small text-white-50"><i class="bi bi-clock"></i> {{ step.duration }}</span>
+                </div>
+                <ul class="small text-white-75 mb-0 ps-3">
+                  {% for task in step.tasks %}
+                    <li>{{ task }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endfor %}
+          </div>
         </div>
+        {% endif %}
+        
+        <!-- Fallback Weak Bullet Rewrites -->
+        {% if result.bullet_rewrites and result.bullet_rewrites|length > 0 %}
+        <div class="p-4 rounded h-100 mt-4 mb-4" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+          <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-pencil-square"></i> Resume Rewrites</h5>
+          <p class="small text-white-75 mb-3">Suggested improvements for weak bullet points based on metrics and action verbs.</p>
+          <div class="d-flex flex-column gap-3">
+            {% for rewrite in result.bullet_rewrites %}
+              <div class="p-3 rounded" style="background: rgba(0,0,0,0.2); border-left: 3px solid #ffc107;">
+                <p class="small text-white-50 mb-1 text-decoration-line-through">{{ rewrite.original }}</p>
+                <p class="small text-white fw-semibold mb-2">✨ {{ rewrite.suggested }}</p>
+                <span class="badge bg-dark border border-secondary text-white-50" style="font-size: 0.7rem;"><i class="bi bi-info-circle"></i> {{ rewrite.improvement_reason }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        
+        <!-- Fallback ATS Optimization Checks -->
+        {% if result.ats_optimization and result.ats_optimization|length > 0 %}
+        <div class="p-4 rounded h-100 mt-4 mb-4" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+          <h5 class="fw-bold mb-3 text-info"><i class="bi bi-shield-check"></i> ATS Optimization Check</h5>
+          <div class="row g-3">
+            {% for check in result.ats_optimization %}
+              <div class="col-md-6">
+                <div class="d-flex align-items-start p-3 rounded" style="background: rgba(0,0,0,0.2);">
+                  <div class="me-3 fs-4">
+                    {% if check.status %}
+                      <span class="text-success">✅</span>
+                    {% else %}
+                      <span class="text-danger">❌</span>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <h6 class="fw-bold text-white mb-1">{{ check.check_name }}</h6>
+                    <p class="small text-white-75 mb-0">{{ check.feedback }}</p>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        
+        {% endif %}
+
+        <script>
+          document.addEventListener('DOMContentLoaded', () => {
+            const circle = document.querySelector('.score-circle-progress');
+            const scoreText = document.querySelector('.score-value');
+            if(circle && scoreText) {
+              const targetScore = parseInt(circle.getAttribute('data-score'), 10) || 0;
+              const radius = circle.r.baseVal.value;
+              const circumference = radius * 2 * Math.PI;
+              
+              circle.style.strokeDasharray = `${circumference} ${circumference}`;
+              circle.style.strokeDashoffset = circumference;
+              
+              // Animate on next frame for transition to apply
+              setTimeout(() => {
+                const offset = circumference - (targetScore / 100) * circumference;
+                circle.style.strokeDashoffset = offset;
+                
+                // Animate number
+                let current = 0;
+                const duration = 1500;
+                const stepTime = Math.max(16, duration / targetScore);
+                const timer = setInterval(() => {
+                  current++;
+                  scoreText.textContent = current;
+                  if(current >= targetScore) {
+                    clearInterval(timer);
+                    scoreText.textContent = targetScore;
+                  }
+                }, stepTime);
+              }, 100);
+            }
+
+            // Animate breakdown progress bars
+            const progressBars = document.querySelectorAll('.progress-bar');
+            setTimeout(() => {
+              progressBars.forEach(bar => {
+                const targetWidth = bar.getAttribute('data-target-width');
+                if (targetWidth) {
+                  bar.style.width = targetWidth;
+                }
+              });
+            }, 300);
+          });
+        </script>
       </div>
     {% elif result %}
       <div class="alert alert-danger" role="alert">{{ result }}</div>
