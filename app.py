@@ -61,8 +61,8 @@ def inject_csrf_token():
 logging.basicConfig(level=logging.INFO)
 auth_logger = logging.getLogger('auth')
 
-# Lazy configure Gemini API (only when needed for chat)
-GEMINI_API_KEY = 'AIzaSyD8jU1qowhNywKs8AzJ_J_ACkVpdU3MUaA'
+# Setup Gemini API Key from environment (set in run.ps1) or hardcoded fallback
+GEMINI_API_KEY = os.environ.get('GOOGLE_API_KEY', 'AIzaSyD8jU1qowhNywKs8AzJ_J_ACkVpdU3MUaA')
 
 def init_genai():
 	"""Initialize Gemini API - called lazily to avoid slow startup"""
@@ -824,9 +824,10 @@ def analyzer():
 				filename = secure_filename(f.filename)
 				save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 				f.save(save_path)
-				# extract text
+				# extract text with diagnostic logging
 				text = ''
 				_, ext = os.path.splitext(filename.lower())
+				print(f"[ANALYZER] Processing: {filename}, Role: {role}")
 				try:
 					if ext == '.txt':
 						with open(save_path, 'r', encoding='utf-8', errors='ignore') as fh:
@@ -837,15 +838,21 @@ def analyzer():
 							pages = []
 							for p in reader.pages:
 								try:
-									pages.append(p.extract_text() or '')
-								except Exception:
-									pages.append('')
+									txt = p.extract_text()
+									if txt:
+										pages.append(txt)
+								except Exception as pe:
+									print(f"[ANALYZER] Page extraction error: {pe}")
 							text = '\n'.join(pages)
 					else:
-						# For .doc/.docx or if PyPDF2 not installed, fall back to empty text
 						text = ''
-				except Exception:
+				except Exception as te:
+					print(f"[ANALYZER] Text extraction failed: {te}")
 					text = ''
+				
+				print(f"[ANALYZER] Extracted text size: {len(text.strip())} characters")
+				if not text.strip():
+					flash("Warning: We couldn't read any text from your resume. Please check if it's a scanned PDF or a different file type.", "error")
 
 				# Use Gemini for deep analysis
 				init_genai()
@@ -919,26 +926,43 @@ Resume Text:
 					try:
 						model = genai.GenerativeModel('gemini-2.0-flash')
 						response = model.generate_content(prompt)
-						json_str = response.text.replace('```json', '').replace('```', '').strip()
+						# More robust JSON extraction
+						text_resp = response.text.strip()
+						# Find the first { and last } to extract JSON even if there's surrounding text
+						start_idx = text_resp.find('{')
+						end_idx = text_resp.rfind('}')
+						if start_idx != -1 and end_idx != -1:
+							json_str = text_resp[start_idx:end_idx+1]
+						else:
+							json_str = text_resp.replace('```json', '').replace('```', '').strip()
 						
 						import json
 						result = json.loads(json_str)
 						result['role'] = role
 						result['is_ai_analysis'] = True
 						
-						# Calculate total score from breakdown
+						# Calculate total score from breakdown with more robust parsing
 						total_score = 0
 						if 'match_breakdown' in result:
 							for key, value in result['match_breakdown'].items():
 								if isinstance(value, dict) and 'score' in value:
 									try:
-										total_score += int(value['score'])
+										# Handle cases where score might be a string like "8" or a float
+										s_val = str(value['score']).replace('%', '').strip()
+										total_score += int(float(s_val))
 									except (ValueError, TypeError):
 										pass
 						
+						# If breakdown total is still 0, check if there's a top-level match_score
+						if total_score == 0 and 'match_score' in result:
+							try:
+								total_score = int(float(str(result['match_score']).replace('%', '')))
+							except (ValueError, TypeError):
+								pass
+
 						result['match_score'] = total_score
 					except Exception as e:
-						print(f"[ANALYZER ERROR] Gemini API failed: {e}")
+						print(f"[ANALYZER ERROR] Gemini AI analysis failed or returned invalid JSON: {e}")
 						result = None
 				
 				# Fallback if AI fails or triggers rate limits
@@ -952,9 +976,25 @@ Resume Text:
 					}
 					keywords = ROLE_KEYWORDS.get(role, ROLE_KEYWORDS['Data Scientist'])
 					text_l = (text or '').lower()
-					matched = [kw for kw in keywords if kw in text_l]
-					missing_flat = [kw for kw in keywords if kw not in text_l]
-					score = int((len(matched) / max(1, len(keywords))) * 100)
+					
+					# Improved fallback matching (case-insensitive and whitespace aware)
+					matched = [kw for kw in keywords if kw.lower() in text_l]
+					missing_flat = [kw for kw in keywords if kw.lower() not in text_l]
+					
+					# Calculate base score from keywords (weighted at 60 points max)
+					kw_score = (len(matched) / max(1, len(keywords))) * 60
+					
+					# Bonus for overall content length and presence of metrics
+					bonus = 0
+					if len(text_l) > 200: bonus += 10 # Base length
+					if re.search(r'\d+%|\$\d+|\d+x', text_l): bonus += 10 # Impact metrics
+					
+					# Baseline score for having standard resume sections
+					for section in ['education', 'experience', 'project', 'skills', 'contact']:
+						if section in text_l: bonus += 4
+					
+					# Ensure a floor of 5% for any readable text, capped at 98% for fallback
+					score = min(98, max(5, int(kw_score + bonus)) if text_l.strip() else 0)
 					if score >= 60:
 						suggestion = 'Resume looks suitable for this role. Consider adding more quantifiable achievements if possible.'
 					else:
